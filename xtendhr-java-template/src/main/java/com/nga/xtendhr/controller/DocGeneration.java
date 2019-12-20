@@ -1,6 +1,7 @@
 package com.nga.xtendhr.controller;
 
 import java.io.ByteArrayInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -125,14 +126,162 @@ public class DocGeneration {
 	public ResponseEntity<?> upload(@RequestParam(name = "templateId") String templateId,
 			@RequestParam("file") MultipartFile multipartFile, HttpSession session) throws IOException {
 		try {
+
+			XWPFDocument document = new XWPFDocument(multipartFile.getInputStream());
+			startProcessingWordFile(document);
+
+			Random random = new Random(); // to generate a random fileName
+			int randomNumber = random.nextInt(987656554);
+			FileOutputStream fileOutputStream = new FileOutputStream("GeneratedDoc_" + randomNumber); // Temp location
+
+			document.write(fileOutputStream);// writing the updated Template to FileOutputStream // to save file
+			byte[] encoded = Files.readAllBytes(Paths.get("GeneratedDoc_" + randomNumber)); // reading the file
+																							// generated from
+																							// fileOutputStream
+
 			TemplateTest templateTest = new TemplateTest();
 			templateTest.setId(templateId);
-			templateTest.setTemplate(multipartFile.getBytes());
+			templateTest.setTemplate(encoded);
 			templateTestService.create(templateTest);
 			return ResponseEntity.ok().body("Success!!");
 		} catch (Exception e) {
 			e.printStackTrace();
 			return new ResponseEntity<>("Error!", HttpStatus.INTERNAL_SERVER_ERROR);
 		}
+	}
+
+	private XWPFDocument startProcessingWordFile(XWPFDocument docx) throws FileNotFoundException, IOException {
+		for (XWPFParagraph p : docx.getParagraphs()) {
+			List<XWPFRun> runs = p.getRuns();
+			for (int i = 0; i < runs.size(); i++) {
+				String pText = runs.get(i).getText(0);
+				System.out.println("Tag Text:: " + pText);
+				if (pText.contains("@")) {// enter only if there is a "@" in the text
+					i = createTagText(pText.lastIndexOf('@'), docx, runs, i);
+				}
+			}
+		}
+		return docx;
+	}
+
+	private int createTagText(int lastTagStartingAt, XWPFDocument docx, List<XWPFRun> runs, int runsOperatedTill) {
+		if (runsOperatedTill == runs.size() - 1) { // return if last run as it will already be a completed tag
+			return runsOperatedTill;
+		}
+		JSONObject isTag = checkIfItsATAG(runs, runsOperatedTill, null);
+		if (isTag.getBoolean("isCase")) {
+			return performRunOperations(runs, runsOperatedTill, null);
+		}
+		return runsOperatedTill++; // return with increment if its not a tag
+	}
+
+	private int performRunOperations(List<XWPFRun> runs, int runsOperatedTill, XWPFRun runToBeUpdated) {
+		// This function is only called once it's confirmed that it's a tag
+		String tempText;
+		XWPFRun newRunToBeUpdated;
+		String tagString;
+		JSONObject isTag;
+		if (runToBeUpdated == null) {
+			newRunToBeUpdated = runs.get(runsOperatedTill);// save the run in temp
+			tagString = runs.get(runsOperatedTill).getText(0);
+		} else {
+			newRunToBeUpdated = runToBeUpdated;
+			tagString = runToBeUpdated.getText(0);
+		}
+		while (true) { // Now concatenate till '}' is found
+			runsOperatedTill++;// move to next run
+			tempText = runs.get(runsOperatedTill).getText(0);
+			if (tempText.contains("}")) {
+				// Now Checking if a new tag is started
+
+				isTag = checkIfItsATAG(runs, runsOperatedTill, newRunToBeUpdated);
+				if (isTag.getBoolean("isCase")) {
+					runsOperatedTill = isTag.getInt("runsOperatedTill");
+					tagString = tagString + tempText; // copy text to tagString
+					System.out.println("inside case found:: tagString set: " + tagString);
+					setRunText(tagString, newRunToBeUpdated, runs.get(runsOperatedTill)); // placing tagString at the
+																							// correct run and removing
+																							// text from the another run
+					if (runsOperatedTill == runs.size() - 1) { // return if last run as it will be already complete tag
+						return runsOperatedTill;
+					}
+					return performRunOperations(runs, runsOperatedTill, newRunToBeUpdated);
+				}
+
+				tagString = tagString + tempText; // copy text to tagString
+				System.out.println("Found Closing Brace, text set: " + tagString);
+				setRunText(tagString, newRunToBeUpdated, runs.get(runsOperatedTill)); // placing tagString at
+																						// the correct run and
+																						// removing text from
+																						// the another run
+				return (runsOperatedTill);// return till when runs are operated
+			}
+			System.out.println("tagString:*** " + tagString);
+			tagString = tagString + tempText; // copy text to tagString
+			runs.get(runsOperatedTill).setText("", 0); // remove text from run
+		}
+	}
+
+	private void setRunText(String textToSet, XWPFRun runtoBeUpdatedWithText, XWPFRun runToBeUpdatedWithBlankText) {
+		runToBeUpdatedWithBlankText.setText("", 0);
+		runtoBeUpdatedWithText.setText(textToSet, 0);
+	}
+
+	private JSONObject checkIfItsATAG(List<XWPFRun> runs, int runsOperatedTill, XWPFRun runToBeUpdated) {
+
+		/*
+		 * First Checking if its CASE1
+		 * 
+		 * To check if the its exactly a tag
+		 * 
+		 * In case of CASE1 Its a CASE1 Tag only if the 'run' text contains '@' at the
+		 * end and a '{' in the next run text
+		 */
+
+		int tempRunsOperatedTillForCase2 = runsOperatedTill;
+
+		String tempText = runs.get(runsOperatedTill).getText(0);
+		JSONObject responseObj = new JSONObject();
+		if (tempText.lastIndexOf("@") != -1 && (tempText.length() == tempText.lastIndexOf("@") + 1)) { // '@' should be
+																										// at the last
+																										// character
+			runsOperatedTill++; // increment runOperatedTill as we need to check '{' in next run text
+			runsOperatedTill = checkIfTextIsNull(runs, runsOperatedTill, runToBeUpdated); // iterate Till text of runs
+																							// are null / not having any
+																							// text
+			if (runs.get(runsOperatedTill).getText(0).charAt(0) == '{') {
+				responseObj.put("isCase", true);
+				responseObj.put("runsOperatedTill", runsOperatedTill);
+				return responseObj;
+			}
+		}
+
+		/*
+		 * If its not CASE1 Check if it's CASE2
+		 * 
+		 * To check if the its exactly a tag
+		 * 
+		 * In case of CASE2 same run text must contain @{ then only its a tag else its
+		 * not
+		 */
+		tempText = runs.get(tempRunsOperatedTillForCase2).getText(0);
+		if (tempText.charAt(tempText.lastIndexOf("@") + 1) == '{') {
+			responseObj.put("isCase", true);
+			responseObj.put("runsOperatedTill", tempRunsOperatedTillForCase2); // returning same index as need to
+																				// operate from there
+			return responseObj;
+		}
+		responseObj.put("isCase", false);
+		responseObj.put("runsOperatedTill", tempRunsOperatedTillForCase2++); // returning next index as its not a tag
+		return responseObj;
+	}
+
+	private int checkIfTextIsNull(List<XWPFRun> runs, int runsOperatedTill, XWPFRun runToBeUpdated) {
+		String tempText = runs.get(runsOperatedTill).getText(0);
+		if (tempText.length() == 0) {
+			runsOperatedTill++;
+			return checkIfTextIsNull(runs, runsOperatedTill, runToBeUpdated); // recurse if its null
+		}
+		return runsOperatedTill; // return when its not null
 	}
 }
