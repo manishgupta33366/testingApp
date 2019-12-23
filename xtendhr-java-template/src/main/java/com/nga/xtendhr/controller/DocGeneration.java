@@ -20,6 +20,9 @@ import org.apache.poi.xwpf.converter.pdf.PdfOptions;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
+import org.apache.poi.xwpf.usermodel.XWPFTable;
+import org.apache.poi.xwpf.usermodel.XWPFTableCell;
+import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,42 +61,20 @@ public class DocGeneration {
 		try {
 			JSONArray requestTagsArray = new JSONObject(requestData).getJSONArray("tagsArray");
 			TemplateTest templateTest = templateTestService.findById(templateId).get(0);// Template saved in DB
-			InputStream inputStream = new ByteArrayInputStream(templateTest.getTemplate()); // creating inputstream from
+			InputStream inputStream = new ByteArrayInputStream(templateTest.getTemplate()); // creating input-stream
+																							// from
 																							// template to create docx
 																							// file
-			XWPFDocument docx = new XWPFDocument(inputStream);
-			JSONObject tagObject;
-			// using XWPFWordExtractor Class
-			List<XWPFRun> runs;
-			String text;
-			for (XWPFParagraph p : docx.getParagraphs()) {
-				runs = p.getRuns();
-				if (runs != null) {
-					for (XWPFRun r : runs) {
-						text = r.getText(0);
-						System.out.println(text);
-						for (int i = 0; i < requestTagsArray.length(); i++) {
-							tagObject = requestTagsArray.getJSONObject(i);
-							if (text != null && text.contains(tagObject.getString("tag"))) {
-								text = text.replace(tagObject.getString("tag"), tagObject.getString("value"));// replacing
-																												// tag
-																												// key
-																												// with
-																												// tag
-																												// value
-								r.setText(text, 0); // setting The text to run in the same document
-							}
-						}
-					}
-				}
-			}
+			XWPFDocument doc = new XWPFDocument(inputStream);
+
+			replaceTags(doc, requestTagsArray);
 
 			Random random = new Random(); // to generate a random fileName
 			int randomNumber = random.nextInt(987656554);
 			FileOutputStream fileOutputStream = new FileOutputStream("GeneratedDoc_" + randomNumber); // Temp location
 
 			if (!inPDF) {
-				docx.write(fileOutputStream);// writing the updated Template to FileOutputStream // to save file
+				doc.write(fileOutputStream);// writing the updated Template to FileOutputStream // to save file
 				byte[] encoded = Files.readAllBytes(Paths.get("GeneratedDoc_" + randomNumber)); // reading the file
 																								// generated from
 																								// fileOutputStream
@@ -105,7 +86,7 @@ public class DocGeneration {
 				IOUtils.copy(convertedInputStream, response.getOutputStream());
 			} else {
 				PdfOptions options = PdfOptions.create().fontEncoding("windows-1250");
-				PdfConverter.getInstance().convert(docx, fileOutputStream, options);
+				PdfConverter.getInstance().convert(doc, fileOutputStream, options);
 				byte[] encoded = Files.readAllBytes(Paths.get("GeneratedDoc_" + randomNumber)); // reading the file
 																								// generated from
 																								// fileOutputStream
@@ -119,6 +100,59 @@ public class DocGeneration {
 			response.flushBuffer();
 		} catch (Exception e) {
 			e.printStackTrace();
+		}
+	}
+
+	private void replaceTags(XWPFDocument doc, JSONArray requestTagsArray) {
+		// To replace Tags
+		replaceParagraphTags(doc.getParagraphs(), requestTagsArray);
+		replaceTableTags(doc.getTables(), requestTagsArray);
+	}
+
+	void replaceParagraphTags(List<XWPFParagraph> paragraphs, JSONArray requestTagsArray) {
+		// To replace Tags in Paragraphs
+		List<XWPFRun> runs;
+		String text;
+		JSONObject tagObject;
+		for (XWPFParagraph p : paragraphs) {
+			runs = p.getRuns();
+			if (runs != null) {
+				for (XWPFRun r : runs) {
+					text = r.getText(0);
+					System.out.println(text);
+					for (int i = 0; i < requestTagsArray.length(); i++) {
+						tagObject = requestTagsArray.getJSONObject(i);
+						if (text != null && text.contains(tagObject.getString("tag"))) {
+							text = text.replace(tagObject.getString("tag"), tagObject.getString("value"));// replacing
+																											// tag
+																											// key
+																											// with
+																											// tag
+																											// value
+							r.setText(text, 0); // setting The text to 'run' in the same document
+						}
+					}
+				}
+			}
+		}
+	}
+
+	void replaceTableTags(List<XWPFTable> tables, JSONArray requestTagsArray) {
+		// To replace Tags in Tables
+		for (XWPFTable xwpfTable : tables) {
+			List<XWPFTableRow> row = xwpfTable.getRows();
+			for (XWPFTableRow xwpfTableRow : row) {
+				List<XWPFTableCell> cell = xwpfTableRow.getTableCells();
+				for (XWPFTableCell xwpfTableCell : cell) {
+					if (xwpfTableCell != null) {
+						replaceParagraphTags(xwpfTableCell.getParagraphs(), requestTagsArray);
+						List<XWPFTable> internalTables = xwpfTableCell.getTables();
+						if (internalTables.size() != 0) {
+							replaceTableTags(internalTables, requestTagsArray);
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -150,21 +184,48 @@ public class DocGeneration {
 		}
 	}
 
-	private XWPFDocument startProcessingWordFile(XWPFDocument docx) throws FileNotFoundException, IOException {
-		for (XWPFParagraph p : docx.getParagraphs()) {
+	private XWPFDocument startProcessingWordFile(XWPFDocument doc) throws FileNotFoundException, IOException {
+		formatParagraphTags(doc.getParagraphs());
+		formatTableTags(doc.getTables());
+
+		return doc;
+	}
+
+	private void formatParagraphTags(List<XWPFParagraph> paragraphs) {
+		// To format paragraph Tags
+		for (XWPFParagraph p : paragraphs) {
+			System.out.println("Processing Paragraph...");
 			List<XWPFRun> runs = p.getRuns();
 			for (int i = 0; i < runs.size(); i++) {
 				String pText = runs.get(i).getText(0);
-				System.out.println("Tag Text:: " + pText);
+				System.out.println(pText);
 				if (pText.contains("@")) {// enter only if there is a "@" in the text
-					i = createTagText(pText.lastIndexOf('@'), docx, runs, i);
+					i = createTagText(pText.lastIndexOf('@'), runs, i);
 				}
 			}
 		}
-		return docx;
 	}
 
-	private int createTagText(int lastTagStartingAt, XWPFDocument docx, List<XWPFRun> runs, int runsOperatedTill) {
+	private void formatTableTags(List<XWPFTable> tables) {
+		// To format Table Tags
+		for (XWPFTable xwpfTable : tables) {
+			List<XWPFTableRow> row = xwpfTable.getRows();
+			for (XWPFTableRow xwpfTableRow : row) {
+				List<XWPFTableCell> cell = xwpfTableRow.getTableCells();
+				for (XWPFTableCell xwpfTableCell : cell) {
+					if (xwpfTableCell != null) {
+						formatParagraphTags(xwpfTableCell.getParagraphs());
+						List<XWPFTable> internalTables = xwpfTableCell.getTables();
+						if (internalTables.size() != 0) {
+							formatTableTags(internalTables);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	private int createTagText(int lastTagStartingAt, List<XWPFRun> runs, int runsOperatedTill) {
 		if (runsOperatedTill == runs.size() - 1) { // return if last run as it will already be a completed tag
 			return runsOperatedTill;
 		}
