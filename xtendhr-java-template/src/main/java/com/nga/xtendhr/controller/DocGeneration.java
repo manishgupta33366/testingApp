@@ -17,12 +17,16 @@ import javax.servlet.http.HttpSession;
 import org.apache.commons.io.IOUtils;
 import org.apache.poi.xwpf.converter.pdf.PdfConverter;
 import org.apache.poi.xwpf.converter.pdf.PdfOptions;
+import org.apache.poi.xwpf.model.XWPFHeaderFooterPolicy;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFFooter;
+import org.apache.poi.xwpf.usermodel.XWPFHeader;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
+import org.apache.xmlbeans.XmlException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,7 +71,7 @@ public class DocGeneration {
 																							// file
 			XWPFDocument doc = new XWPFDocument(inputStream);
 
-			replaceTags(doc, requestTagsArray);
+			replaceTags(doc, requestTagsArray); // Replace Tags in the doc
 
 			Random random = new Random(); // to generate a random fileName
 			int randomNumber = random.nextInt(987656554);
@@ -103,13 +107,45 @@ public class DocGeneration {
 		}
 	}
 
-	private void replaceTags(XWPFDocument doc, JSONArray requestTagsArray) {
+	private void replaceTags(XWPFDocument doc, JSONArray requestTagsArray) throws IOException, XmlException {
 		// To replace Tags
 		replaceParagraphTags(doc.getParagraphs(), requestTagsArray);
 		replaceTableTags(doc.getTables(), requestTagsArray);
+		replaceHeaderFooterTags(doc, requestTagsArray);
 	}
 
-	void replaceParagraphTags(List<XWPFParagraph> paragraphs, JSONArray requestTagsArray) {
+	private void replaceHeaderFooterTags(XWPFDocument doc, JSONArray requestTagsArray)
+			throws IOException, XmlException {
+		// To replace Header and Footer Tags
+		XWPFHeaderFooterPolicy policy = new XWPFHeaderFooterPolicy(doc);
+
+		// processing default Header
+		XWPFHeader header = policy.getDefaultHeader();
+		replaceParagraphTags(header.getParagraphs(), requestTagsArray);
+		replaceTableTags(header.getTables(), requestTagsArray);
+
+		// processing default footer
+		XWPFFooter footer = policy.getDefaultFooter();
+		replaceParagraphTags(footer.getParagraphs(), requestTagsArray);
+		replaceTableTags(footer.getTables(), requestTagsArray);
+
+		// Processing Header and Footer of each page (In case there is of different
+		// Header and Footer are set for each page)
+		int numberOfPages = doc.getProperties().getExtendedProperties().getUnderlyingProperties().getPages();
+		for (int i = 0; i < numberOfPages; i++) {
+			// processing headers
+			header = policy.getHeader(i);
+			replaceParagraphTags(header.getParagraphs(), requestTagsArray);
+			replaceTableTags(header.getTables(), requestTagsArray);
+
+			// processing footers
+			footer = policy.getFooter(i);
+			replaceParagraphTags(footer.getParagraphs(), requestTagsArray);
+			replaceTableTags(footer.getTables(), requestTagsArray);
+		}
+	}
+
+	private void replaceParagraphTags(List<XWPFParagraph> paragraphs, JSONArray requestTagsArray) {
 		// To replace Tags in Paragraphs
 		List<XWPFRun> runs;
 		String text;
@@ -137,7 +173,7 @@ public class DocGeneration {
 		}
 	}
 
-	void replaceTableTags(List<XWPFTable> tables, JSONArray requestTagsArray) {
+	private void replaceTableTags(List<XWPFTable> tables, JSONArray requestTagsArray) {
 		// To replace Tags in Tables
 		for (XWPFTable xwpfTable : tables) {
 			List<XWPFTableRow> row = xwpfTable.getRows();
@@ -184,21 +220,53 @@ public class DocGeneration {
 		}
 	}
 
-	private XWPFDocument startProcessingWordFile(XWPFDocument doc) throws FileNotFoundException, IOException {
+	private XWPFDocument startProcessingWordFile(XWPFDocument doc)
+			throws FileNotFoundException, IOException, XmlException {
 		formatParagraphTags(doc.getParagraphs());
 		formatTableTags(doc.getTables());
-
+		formatHeaderAndFooterTags(doc);
 		return doc;
+	}
+
+	private void formatHeaderAndFooterTags(XWPFDocument doc) throws IOException, XmlException {
+		// To format Header and Footer Tags
+		XWPFHeaderFooterPolicy policy = new XWPFHeaderFooterPolicy(doc);
+
+		// processing default Header
+		XWPFHeader header = policy.getDefaultHeader();
+		formatParagraphTags(header.getParagraphs());
+		formatTableTags(header.getTables());
+
+		// processing default footer
+		XWPFFooter footer = policy.getDefaultFooter();
+		formatParagraphTags(footer.getParagraphs());
+		formatTableTags(footer.getTables());
+
+		// Processing Header and Footer of each page (In case there is of different
+		// Header and Footer are set for each page)
+		int numberOfPages = doc.getProperties().getExtendedProperties().getUnderlyingProperties().getPages();
+		for (int i = 0; i < numberOfPages; i++) {
+			// processing headers
+			header = policy.getHeader(i);
+			formatParagraphTags(header.getParagraphs());
+			formatTableTags(header.getTables());
+
+			// processing footers
+			footer = policy.getFooter(i);
+			formatParagraphTags(footer.getParagraphs());
+			formatTableTags(footer.getTables());
+		}
 	}
 
 	private void formatParagraphTags(List<XWPFParagraph> paragraphs) {
 		// To format paragraph Tags
+		String pText;
 		for (XWPFParagraph p : paragraphs) {
 			System.out.println("Processing Paragraph...");
 			List<XWPFRun> runs = p.getRuns();
 			for (int i = 0; i < runs.size(); i++) {
-				String pText = runs.get(i).getText(0);
-				System.out.println(pText);
+				pText = runs.get(i).getText(0);
+				pText = pText == null ? "" : pText;// Check if pText is null
 				if (pText.contains("@")) {// enter only if there is a "@" in the text
 					i = createTagText(pText.lastIndexOf('@'), runs, i);
 				}
