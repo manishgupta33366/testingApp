@@ -121,27 +121,32 @@ public class DocGeneration {
 
 		// processing default Header
 		XWPFHeader header = policy.getDefaultHeader();
-		replaceParagraphTags(header.getParagraphs(), requestTagsArray);
-		replaceTableTags(header.getTables(), requestTagsArray);
-
+		if (header != null) {
+			replaceParagraphTags(header.getParagraphs(), requestTagsArray);
+			replaceTableTags(header.getTables(), requestTagsArray);
+		}
 		// processing default footer
 		XWPFFooter footer = policy.getDefaultFooter();
-		replaceParagraphTags(footer.getParagraphs(), requestTagsArray);
-		replaceTableTags(footer.getTables(), requestTagsArray);
-
+		if (footer != null) {
+			replaceParagraphTags(footer.getParagraphs(), requestTagsArray);
+			replaceTableTags(footer.getTables(), requestTagsArray);
+		}
 		// Processing Header and Footer of each page (In case there is of different
 		// Header and Footer are set for each page)
 		int numberOfPages = doc.getProperties().getExtendedProperties().getUnderlyingProperties().getPages();
 		for (int i = 0; i < numberOfPages; i++) {
 			// processing headers
 			header = policy.getHeader(i);
-			replaceParagraphTags(header.getParagraphs(), requestTagsArray);
-			replaceTableTags(header.getTables(), requestTagsArray);
-
+			if (header != null) {
+				replaceParagraphTags(header.getParagraphs(), requestTagsArray);
+				replaceTableTags(header.getTables(), requestTagsArray);
+			}
 			// processing footers
 			footer = policy.getFooter(i);
-			replaceParagraphTags(footer.getParagraphs(), requestTagsArray);
-			replaceTableTags(footer.getTables(), requestTagsArray);
+			if (footer != null) {
+				replaceParagraphTags(footer.getParagraphs(), requestTagsArray);
+				replaceTableTags(footer.getTables(), requestTagsArray);
+			}
 		}
 	}
 
@@ -234,27 +239,32 @@ public class DocGeneration {
 
 		// processing default Header
 		XWPFHeader header = policy.getDefaultHeader();
-		formatParagraphTags(header.getParagraphs());
-		formatTableTags(header.getTables());
-
+		if (header != null) {
+			formatParagraphTags(header.getParagraphs());
+			formatTableTags(header.getTables());
+		}
 		// processing default footer
 		XWPFFooter footer = policy.getDefaultFooter();
-		formatParagraphTags(footer.getParagraphs());
-		formatTableTags(footer.getTables());
-
+		if (footer != null) {
+			formatParagraphTags(footer.getParagraphs());
+			formatTableTags(footer.getTables());
+		}
 		// Processing Header and Footer of each page (In case there is of different
 		// Header and Footer are set for each page)
 		int numberOfPages = doc.getProperties().getExtendedProperties().getUnderlyingProperties().getPages();
 		for (int i = 0; i < numberOfPages; i++) {
 			// processing headers
 			header = policy.getHeader(i);
-			formatParagraphTags(header.getParagraphs());
-			formatTableTags(header.getTables());
-
+			if (header != null) {
+				formatParagraphTags(header.getParagraphs());
+				formatTableTags(header.getTables());
+			}
 			// processing footers
 			footer = policy.getFooter(i);
-			formatParagraphTags(footer.getParagraphs());
-			formatTableTags(footer.getTables());
+			if (footer != null) {
+				formatParagraphTags(footer.getParagraphs());
+				formatTableTags(footer.getTables());
+			}
 		}
 	}
 
