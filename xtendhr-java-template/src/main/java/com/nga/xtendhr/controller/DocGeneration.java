@@ -404,11 +404,15 @@ public class DocGeneration {
 		 * not
 		 */
 		tempText = runs.get(tempRunsOperatedTillForCase2).getText(0);
-		if (tempText.charAt(tempText.lastIndexOf("@") + 1) == '{') {
-			responseObj.put("isCase", true);
-			responseObj.put("runsOperatedTill", tempRunsOperatedTillForCase2); // returning same index as need to
-																				// operate from there
-			return responseObj;
+		if (!(tempText.lastIndexOf("@") + 1 == tempText.length())) { // checking if '@' is at the last location, which
+																		// is already checked in CASE1, indicates its
+																		// not a tag
+			if (tempText.charAt(tempText.lastIndexOf("@") + 1) == '{') {
+				responseObj.put("isCase", true);
+				responseObj.put("runsOperatedTill", tempRunsOperatedTillForCase2); // returning same index as need to
+																					// operate from there
+				return responseObj;
+			}
 		}
 		responseObj.put("isCase", false);
 		responseObj.put("runsOperatedTill", tempRunsOperatedTillForCase2++); // returning next index as its not a tag
