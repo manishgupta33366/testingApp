@@ -11,9 +11,7 @@ import com.nga.xtendhr.config.DBConfiguration;
 
 @Entity
 @Table(name = DBConfiguration.FHD_COUNTRIES, schema = DBConfiguration.SCHEMA_NAME)
-@NamedQueries({ @NamedQuery(name = "Country.findAll", query = "SELECT co FROM Country co")
-
-})
+@NamedQueries({ @NamedQuery(name = "Country.findAll", query = "SELECT co FROM Country co") })
 public class Country {
 
 	@Id
