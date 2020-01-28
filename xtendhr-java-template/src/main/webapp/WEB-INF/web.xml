@@ -5,10 +5,6 @@
 	xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_1.xsd"
 	id="WebApp_ID" version="3.1">
 
-	<login-config>
-		<auth-method>FORM</auth-method>
-	</login-config>
-
 	<resource-ref><!-- Required for com.sap.core.connectivity.api.configuration.ConnectivityConfiguration -->
 		<res-ref-name>connectivityConfiguration</res-ref-name>
 		<res-type>com.sap.core.connectivity.api.configuration.ConnectivityConfiguration
@@ -19,10 +15,32 @@
 		<res-type>com.sap.core.connectivity.api.authentication.AuthenticationHeaderProvider
 		</res-type>
 	</resource-ref>
+	<resource-ref>
+		<res-ref-name>user/Provider</res-ref-name>
+		<res-type>com.sap.security.um.user.UserProvider</res-type>
+	</resource-ref>
 	<resource-ref><!-- Declare the JNDI lookup of the default data source -->
 		<res-ref-name>jdbc/DefaultDB</res-ref-name>
 		<res-type>javax.sql.DataSource</res-type>
 	</resource-ref>
+
+	<login-config>
+		<auth-method>FORM</auth-method>
+	</login-config>
+	<security-constraint>
+		<web-resource-collection>
+			<web-resource-name>Protected Area</web-resource-name>
+			<url-pattern>/</url-pattern>
+		</web-resource-collection>
+		<auth-constraint>
+			<role-name>Everyone</role-name>
+		</auth-constraint>
+	</security-constraint>
+	<security-role>
+		<description>All SAP Cloud Platform users</description>
+		<role-name>Everyone</role-name>
+	</security-role>
+
 	<session-config>
 		<session-timeout>20</session-timeout><!-- Setting Session Timeout to 20 
 			minutes -->

@@ -37,6 +37,28 @@ public class StoppageDetails {
 	@Column(name = "\"DOCUMENT_TYPE\"", columnDefinition = "String(32)")
 	private String documentType;
 
+	@Column(name = "\"IS_APPROVED\"", columnDefinition = "BOOLEAN")
+	private Boolean isApproved;
+
+	@Column(name = "\"APPROVED_BY\"", columnDefinition = "String(32)")
+	private String approvedBy;
+
+	public Boolean getIsApproved() {
+		return isApproved;
+	}
+
+	public void setIsApproved(Boolean isApproved) {
+		this.isApproved = isApproved;
+	}
+
+	public String getApprovedBy() {
+		return approvedBy;
+	}
+
+	public void setApprovedBy(String approvedBy) {
+		this.approvedBy = approvedBy;
+	}
+
 	public String getDocumentType() {
 		return documentType;
 	}

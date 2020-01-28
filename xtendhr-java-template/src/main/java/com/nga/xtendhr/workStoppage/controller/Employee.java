@@ -34,7 +34,7 @@ import com.nga.xtendhr.workStoppage.service.StoppageDetailsService;
 
 /*
  * AppName: WorkStoppage
- * Employee WorkStoppage Controller
+ * Employee WorkStoppage Employee Controller
  * 
  * @author	:	Manish Gupta  
  * @email	:	manish.g@ngahr.com
@@ -44,9 +44,11 @@ import com.nga.xtendhr.workStoppage.service.StoppageDetailsService;
 @RestController
 @RequestMapping("/WorkStoppage/Employee")
 public class Employee {
-	Logger logger = LoggerFactory.getLogger(Employee.class);
+
 	@Autowired
 	StoppageDetailsService stoppageDetailsService;
+
+	Logger logger = LoggerFactory.getLogger(Employee.class);
 
 	@GetMapping(value = "/login")
 	public ResponseEntity<?> login(HttpServletRequest request) {
@@ -83,14 +85,15 @@ public class Employee {
 			stoppageDetails.setId(Integer.toString(randomNumber));
 			// now converting encoded file back to bytes array
 			stoppageDetails.setDocument(Base64.getDecoder().decode((String) session.getAttribute("file")));
-			stoppageDetails.setEmployeeId("sfadmin");
+			stoppageDetails.setEmployeeId((String) session.getAttribute("userId"));
 			stoppageDetails.setStartDate(new SimpleDateFormat("yyyy-MM-dd").parse(requestObj.getString("startDate")));
 			stoppageDetails.setEndDate(new SimpleDateFormat("yyyy-MM-dd").parse(requestObj.getString("endDate")));
-			stoppageDetails.setStoppageType(requestObj.getString("stoppageType"));
-			stoppageDetails.setDocumentType("png");
-			String fileName = (String) session.getAttribute("fileName");
+			stoppageDetails.setStoppageType((String) session.getAttribute("stoppageType"));
+			stoppageDetails.setDocumentType((String) session.getAttribute("fileName"));
+			stoppageDetails.setIsApproved(false);
+
 			String contentType = (String) session.getAttribute("contentType");
-			logger.debug("Uploaded Orignal FileName: " + fileName + " ::: fileName:" + fileName + " ::: contentType:"
+			logger.debug("Uploaded Orignal FileName: " + (String) session.getAttribute("fileName") + " ::: contentType:"
 					+ contentType);
 			stoppageDetailsService.create(stoppageDetails);
 			return ResponseEntity.ok().body("Success!!");
@@ -123,7 +126,10 @@ public class Employee {
 				"https://southcentralus.api.cognitive.microsoft.com/customvision/v3.0/Prediction/f6830796-4ee9-4bd1-87fd-57df2afe01dc/classify/iterations/Iteration1/image",
 				HttpMethod.POST, requestEntity, String.class);
 		JSONObject responseObj = new JSONObject(response.getBody());
-		responseObj.put("userId", (String) session.getAttribute("loggedInUser"));
+		responseObj.put("userId", request.getUserPrincipal().getName());
+		session.setAttribute("userId", request.getUserPrincipal().getName());
+		session.setAttribute("stoppageType",
+				responseObj.getJSONArray("predictions").getJSONObject(0).getString("tagName"));
 		return ResponseEntity.ok().body(responseObj.toString());
 	}
 
