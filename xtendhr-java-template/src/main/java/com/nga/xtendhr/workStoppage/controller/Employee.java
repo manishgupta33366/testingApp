@@ -74,8 +74,8 @@ public class Employee {
 		}
 	}
 
-	@PostMapping(value = "/workStoppageDetails")
-	public ResponseEntity<?> workStoppageDetails(@RequestBody String requestData, HttpServletRequest request) {
+	@PostMapping(value = "/createWorkStoppage")
+	public ResponseEntity<?> createWorkStoppage(@RequestBody String requestData, HttpServletRequest request) {
 		try {
 			HttpSession session = request.getSession(false);
 			JSONObject requestObj = new JSONObject(requestData);
@@ -133,4 +133,14 @@ public class Employee {
 		return ResponseEntity.ok().body(responseObj.toString());
 	}
 
+	@GetMapping(value = "/getMyRequests")
+	public ResponseEntity<?> getStoppageDetails(HttpServletRequest request) {
+		try {
+			return ResponseEntity.ok()
+					.body(stoppageDetailsService.findByEmployeeId(request.getUserPrincipal().getName()));
+		} catch (Exception e) {
+			e.printStackTrace();
+			return new ResponseEntity<>("Error!", HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
 }

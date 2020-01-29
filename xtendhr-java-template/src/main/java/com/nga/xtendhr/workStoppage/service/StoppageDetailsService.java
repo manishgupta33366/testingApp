@@ -14,4 +14,10 @@ public interface StoppageDetailsService {
 	public StoppageDetails findById(String id);
 
 	public void deleteByObject(StoppageDetails item);
+
+	public List<StoppageDetails> findByEmployeeId(String employeeId);
+
+	public List<StoppageDetails> findAllApproved();
+
+	public List<StoppageDetails> findAllNotApproved();
 }

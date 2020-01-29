@@ -13,7 +13,10 @@ import com.nga.xtendhr.workStoppage.config.DBConfiguration;
 
 @Entity
 @Table(name = DBConfiguration.STOPPAGE_DETAILS, schema = DBConfiguration.SCHEMA_NAME)
-@NamedQueries({ @NamedQuery(name = "StoppageDetails.findAll", query = "SELECT SD FROM StoppageDetails SD") })
+@NamedQueries({ @NamedQuery(name = "StoppageDetails.findAll", query = "SELECT SD FROM StoppageDetails SD"),
+		@NamedQuery(name = "StoppageDetails.findAllApproved", query = "SELECT SD FROM StoppageDetails SD WHERE SD.isApproved = :isApproved"),
+		@NamedQuery(name = "StoppageDetails.findAllNotApproved", query = "SELECT SD FROM StoppageDetails SD WHERE SD.isApproved = :isApproved"),
+		@NamedQuery(name = "StoppageDetails.findByEmployeeId", query = "SELECT SD FROM StoppageDetails SD WHERE SD.employeeId = :employeeId") })
 public class StoppageDetails {
 	@Id
 	@Column(name = "\"ID\"", columnDefinition = "VARCHAR(32)")
