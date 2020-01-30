@@ -46,6 +46,39 @@ public class StoppageDetails {
 	@Column(name = "\"APPROVED_BY\"", columnDefinition = "String(32)")
 	private String approvedBy;
 
+	@Column(name = "\"IS_THERAPEUTIC\"", columnDefinition = "BOOLEAN")
+	private Boolean isTherapeutic;
+
+	@Column(name = "\"THERAPY_START_DATE\"", columnDefinition = "SECONDDATE")
+	private Date therapyStartDate;
+
+	@Column(name = "\"THERAPY_END_DATE\"", columnDefinition = "SECONDDATE")
+	private Date therapyEndDate;
+
+	public Boolean getIsTherapeutic() {
+		return isTherapeutic;
+	}
+
+	public void setIsTherapeutic(Boolean isTherapeutic) {
+		this.isTherapeutic = isTherapeutic;
+	}
+
+	public Date getTherapyStartDate() {
+		return therapyStartDate;
+	}
+
+	public void setTherapyStartDate(Date therapyStartDate) {
+		this.therapyStartDate = therapyStartDate;
+	}
+
+	public Date getTherapyEndDate() {
+		return therapyEndDate;
+	}
+
+	public void setTherapyEndDate(Date therapyEndDate) {
+		this.therapyEndDate = therapyEndDate;
+	}
+
 	public Boolean getIsApproved() {
 		return isApproved;
 	}

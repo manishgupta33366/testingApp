@@ -91,7 +91,13 @@ public class Employee {
 			stoppageDetails.setStoppageType((String) session.getAttribute("stoppageType"));
 			stoppageDetails.setDocumentType((String) session.getAttribute("fileName"));
 			stoppageDetails.setIsApproved(false);
-
+			stoppageDetails.setIsTherapeutic(requestObj.getBoolean("isTherapeutic"));
+			if (requestObj.getBoolean("isTherapeutic")) {
+				stoppageDetails.setTherapyStartDate(
+						new SimpleDateFormat("yyyy-MM-dd").parse(requestObj.getString("therapyStartDate")));
+				stoppageDetails.setTherapyEndDate(
+						new SimpleDateFormat("yyyy-MM-dd").parse(requestObj.getString("therapyEndDate")));
+			}
 			String contentType = (String) session.getAttribute("contentType");
 			logger.debug("Uploaded Orignal FileName: " + (String) session.getAttribute("fileName") + " ::: contentType:"
 					+ contentType);
@@ -123,7 +129,7 @@ public class Employee {
 		HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(bodyMap, headers);
 		RestTemplate restTemplate = new RestTemplate();
 		ResponseEntity<String> response = restTemplate.exchange(
-				"https://southcentralus.api.cognitive.microsoft.com/customvision/v3.0/Prediction/f6830796-4ee9-4bd1-87fd-57df2afe01dc/classify/iterations/Iteration1/image",
+				"https://southcentralus.api.cognitive.microsoft.com/customvision/v3.0/Prediction/f6830796-4ee9-4bd1-87fd-57df2afe01dc/classify/iterations/Iteration2/image",
 				HttpMethod.POST, requestEntity, String.class);
 		JSONObject responseObj = new JSONObject(response.getBody());
 		responseObj.put("userId", request.getUserPrincipal().getName());
