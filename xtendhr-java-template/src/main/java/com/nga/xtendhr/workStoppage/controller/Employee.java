@@ -30,7 +30,9 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.nga.xtendhr.workStoppage.model.StoppageDetails;
+import com.nga.xtendhr.workStoppage.model.StoppageDocuments;
 import com.nga.xtendhr.workStoppage.service.StoppageDetailsService;
+import com.nga.xtendhr.workStoppage.service.StoppageDocumentsService;
 
 /*
  * AppName: WorkStoppage
@@ -47,6 +49,9 @@ public class Employee {
 
 	@Autowired
 	StoppageDetailsService stoppageDetailsService;
+
+	@Autowired
+	StoppageDocumentsService stoppageDocumentsService;
 
 	Logger logger = LoggerFactory.getLogger(Employee.class);
 
@@ -84,12 +89,13 @@ public class Employee {
 			int randomNumber = random.nextInt(987656554);
 			stoppageDetails.setId(Integer.toString(randomNumber));
 			// now converting encoded file back to bytes array
-			stoppageDetails.setDocument(Base64.getDecoder().decode((String) session.getAttribute("file")));
+			// stoppageDetails.setDocument(Base64.getDecoder().decode((String)
+			// session.getAttribute("file")));
 			stoppageDetails.setEmployeeId((String) session.getAttribute("userId"));
 			stoppageDetails.setStartDate(new SimpleDateFormat("yyyy-MM-dd").parse(requestObj.getString("startDate")));
 			stoppageDetails.setEndDate(new SimpleDateFormat("yyyy-MM-dd").parse(requestObj.getString("endDate")));
 			stoppageDetails.setStoppageType((String) session.getAttribute("stoppageType"));
-			stoppageDetails.setDocumentType((String) session.getAttribute("fileName"));
+			// stoppageDetails.setDocumentType((String) session.getAttribute("fileName"));
 			stoppageDetails.setIsApproved(false);
 			stoppageDetails.setIsTherapeutic(requestObj.getBoolean("isTherapeutic"));
 			if (requestObj.getBoolean("isTherapeutic")) {
@@ -102,7 +108,14 @@ public class Employee {
 			logger.debug("Uploaded Orignal FileName: " + (String) session.getAttribute("fileName") + " ::: contentType:"
 					+ contentType);
 			stoppageDetailsService.create(stoppageDetails);
-			return ResponseEntity.ok().body("Success!!");
+
+			StoppageDocuments stoppageDocument = new StoppageDocuments();
+			stoppageDocument.setId(Integer.toString(random.nextInt(987656554)));
+			stoppageDocument.setStoppageDetailsId(Integer.toString(randomNumber));
+			stoppageDocument.setDocumentType((String) session.getAttribute("fileName"));
+			stoppageDocument.setDocument(Base64.getDecoder().decode((String) session.getAttribute("file")));
+			stoppageDocumentsService.create(stoppageDocument);
+			return ResponseEntity.ok().body("Success!");
 		} catch (Exception e) {
 			e.printStackTrace();
 			return new ResponseEntity<>("Error!", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -129,7 +142,7 @@ public class Employee {
 		HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(bodyMap, headers);
 		RestTemplate restTemplate = new RestTemplate();
 		ResponseEntity<String> response = restTemplate.exchange(
-				"https://southcentralus.api.cognitive.microsoft.com/customvision/v3.0/Prediction/f6830796-4ee9-4bd1-87fd-57df2afe01dc/classify/iterations/Iteration2/image",
+				"https://southcentralus.api.cognitive.microsoft.com/customvision/v3.0/Prediction/f6830796-4ee9-4bd1-87fd-57df2afe01dc/classify/iterations/Iteration4/image",
 				HttpMethod.POST, requestEntity, String.class);
 		JSONObject responseObj = new JSONObject(response.getBody());
 		responseObj.put("userId", request.getUserPrincipal().getName());

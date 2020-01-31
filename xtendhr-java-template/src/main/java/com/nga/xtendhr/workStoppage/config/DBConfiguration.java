@@ -18,4 +18,5 @@ public class DBConfiguration {
 
 	public static final String STOPPAGE_TYPE = "\"" + ARTIFACT_PATH + TABLE_PATH + "WSD_STOPPAGE_TYPE\"";
 	public static final String STOPPAGE_DETAILS = "\"" + ARTIFACT_PATH + TABLE_PATH + "WSR_STOPPAGE_DETAILS\"";
+	public static final String STOPPAGE_DOCUMENTS = "\"" + ARTIFACT_PATH + TABLE_PATH + "WSR_STOPPAGE_DOCUMENTS\"";
 }

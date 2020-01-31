@@ -34,17 +34,14 @@ public class StoppageDetails {
 	@Column(name = "\"END_DATE\"", columnDefinition = "SECONDDATE")
 	private Date endDate;
 
-	@Column(name = "\"DOCUMENT\"", columnDefinition = "BLOB")
-	private byte[] document;
-
-	@Column(name = "\"DOCUMENT_TYPE\"", columnDefinition = "String(32)")
-	private String documentType;
-
 	@Column(name = "\"IS_APPROVED\"", columnDefinition = "BOOLEAN")
 	private Boolean isApproved;
 
 	@Column(name = "\"APPROVED_BY\"", columnDefinition = "String(32)")
 	private String approvedBy;
+
+	@Column(name = "\"APPROVED_ON\"", columnDefinition = "SECONDDATE")
+	private Date approvedOn;
 
 	@Column(name = "\"IS_THERAPEUTIC\"", columnDefinition = "BOOLEAN")
 	private Boolean isTherapeutic;
@@ -95,14 +92,6 @@ public class StoppageDetails {
 		this.approvedBy = approvedBy;
 	}
 
-	public String getDocumentType() {
-		return documentType;
-	}
-
-	public void setDocumentType(String documentType) {
-		this.documentType = documentType;
-	}
-
 	public String getId() {
 		return id;
 	}
@@ -143,11 +132,12 @@ public class StoppageDetails {
 		this.endDate = endDate;
 	}
 
-	public byte[] getDocument() {
-		return document;
+	public Date getApprovedOn() {
+		return approvedOn;
 	}
 
-	public void setDocument(byte[] document) {
-		this.document = document;
+	public void setApprovedOn(Date approvedOn) {
+		this.approvedOn = approvedOn;
 	}
+
 }

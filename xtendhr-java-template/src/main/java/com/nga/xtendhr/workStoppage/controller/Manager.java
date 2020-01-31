@@ -1,5 +1,8 @@
 package com.nga.xtendhr.workStoppage.controller;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.json.JSONArray;
@@ -13,10 +16,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.nga.xtendhr.workStoppage.model.StoppageDetails;
 import com.nga.xtendhr.workStoppage.service.StoppageDetailsService;
+import com.nga.xtendhr.workStoppage.service.StoppageDocumentsService;
 
 /*
  * AppName: WorkStoppage
@@ -32,6 +37,9 @@ import com.nga.xtendhr.workStoppage.service.StoppageDetailsService;
 public class Manager {
 	@Autowired
 	StoppageDetailsService stoppageDetailsService;
+
+	@Autowired
+	StoppageDocumentsService stoppageDocumentsService;
 
 	Logger logger = LoggerFactory.getLogger(Manager.class);
 
@@ -65,9 +73,23 @@ public class Manager {
 				tempJsonObject = requestArray.getJSONObject(i);
 				stoppageDetails = stoppageDetailsService.findById(tempJsonObject.getString("id"));
 				stoppageDetails.setIsApproved(tempJsonObject.getBoolean("isApproved"));
+				stoppageDetails.setApprovedOn(new SimpleDateFormat("yyyy-MM-dd")
+						.parse(new SimpleDateFormat("yyyy-MM-dd").format(new Date())));
+				stoppageDetails.setApprovedBy(request.getUserPrincipal().getName());
 				stoppageDetailsService.update(stoppageDetails);
 			}
 			return ResponseEntity.ok().body("Success!");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return new ResponseEntity<>("Error!", HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	@GetMapping(value = "/getStoppageDocument")
+	public ResponseEntity<?> getStoppageDocument(@RequestParam(name = "StoppageDetailsId") String StoppageDetailsId,
+			HttpServletRequest request) {
+		try {
+			return ResponseEntity.ok().body(stoppageDocumentsService.findByStoppageDetailsId(StoppageDetailsId).get(0));
 		} catch (Exception e) {
 			e.printStackTrace();
 			return new ResponseEntity<>("Error!", HttpStatus.INTERNAL_SERVER_ERROR);
