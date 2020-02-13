@@ -40,8 +40,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.nga.xtendhr.model.TemplateTest;
-import com.nga.xtendhr.service.TemplateTestService;
+import com.nga.xtendhr.fastDoc.model.TemplateTest;
+import com.nga.xtendhr.fastDoc.service.TemplateTestService;
 
 /*
  * AppName: DocGen
@@ -58,8 +58,8 @@ public class DocGeneration {
 	@Autowired
 	TemplateTestService templateTestService;
 
-	@PostMapping(value = "/downloadTestTemplate")
-	public void downloadTestTemplate(@RequestParam(name = "templateId") String templateId,
+	@PostMapping(value = "/downloadTestTemplate2")
+	public void downloadTestTemplate2(@RequestParam(name = "templateId") String templateId,
 			@RequestParam(name = "inPDF") Boolean inPDF, @RequestBody String requestData, HttpServletRequest request,
 			HttpServletResponse response) {
 		try {
@@ -106,6 +106,14 @@ public class DocGeneration {
 			e.printStackTrace();
 		}
 	}
+
+	/*
+	 * @GetMapping(value = "/getTemplateIds") public ResponseEntity<?>
+	 * getTemplateIds(HttpServletRequest request) { try { return ResponseEntity.ok()
+	 * .body(stoppageDetailsService.findByEmployeeId(request.getUserPrincipal().
+	 * getName())); } catch (Exception e) { e.printStackTrace(); return new
+	 * ResponseEntity<>("Error!", HttpStatus.INTERNAL_SERVER_ERROR); } }
+	 */
 
 	private void replaceTags(XWPFDocument doc, JSONArray requestTagsArray) throws IOException, XmlException {
 		// To replace Tags
@@ -197,8 +205,8 @@ public class DocGeneration {
 		}
 	}
 
-	@RequestMapping(value = "/uploadTestTemplate", method = RequestMethod.POST)
-	public ResponseEntity<?> upload(@RequestParam(name = "templateId") String templateId,
+	@RequestMapping(value = "/uploadTestTemplate2", method = RequestMethod.POST)
+	public ResponseEntity<?> upload2(@RequestParam(name = "templateId") String templateId,
 			@RequestParam("file") MultipartFile multipartFile, HttpSession session) throws IOException {
 		try {
 

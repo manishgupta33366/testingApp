@@ -104,6 +104,13 @@ public class Employee {
 				stoppageDetails.setTherapyEndDate(
 						new SimpleDateFormat("yyyy-MM-dd").parse(requestObj.getString("therapyEndDate")));
 			}
+			if (requestObj.getBoolean("isAccident")) {
+				stoppageDetails.setAccidentType(requestObj.getString("accidentType"));
+				stoppageDetails.setWithStoppage(requestObj.getBoolean("withStoppage"));
+			} else {
+				stoppageDetails.setSickType(requestObj.getString("sickType"));
+				stoppageDetails.setPregnancyRelated(requestObj.getBoolean("pregnancyRelated"));
+			}
 			String contentType = (String) session.getAttribute("contentType");
 			logger.debug("Uploaded Orignal FileName: " + (String) session.getAttribute("fileName") + " ::: contentType:"
 					+ contentType);

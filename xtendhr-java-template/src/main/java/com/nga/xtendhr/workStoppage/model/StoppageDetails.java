@@ -13,10 +13,11 @@ import com.nga.xtendhr.workStoppage.config.DBConfiguration;
 
 @Entity
 @Table(name = DBConfiguration.STOPPAGE_DETAILS, schema = DBConfiguration.SCHEMA_NAME)
-@NamedQueries({ @NamedQuery(name = "StoppageDetails.findAll", query = "SELECT SD FROM StoppageDetails SD"),
-		@NamedQuery(name = "StoppageDetails.findAllApproved", query = "SELECT SD FROM StoppageDetails SD WHERE SD.isApproved = :isApproved"),
-		@NamedQuery(name = "StoppageDetails.findAllNotApproved", query = "SELECT SD FROM StoppageDetails SD WHERE SD.isApproved = :isApproved"),
-		@NamedQuery(name = "StoppageDetails.findByEmployeeId", query = "SELECT SD FROM StoppageDetails SD WHERE SD.employeeId = :employeeId") })
+@NamedQueries({
+		@NamedQuery(name = "StoppageDetails.findAll", query = "SELECT SD FROM StoppageDetails SD ORDER BY SD.startDate DESC"),
+		@NamedQuery(name = "StoppageDetails.findAllApproved", query = "SELECT SD FROM StoppageDetails SD WHERE SD.isApproved = :isApproved ORDER BY SD.startDate DESC"),
+		@NamedQuery(name = "StoppageDetails.findAllNotApproved", query = "SELECT SD FROM StoppageDetails SD WHERE SD.isApproved = :isApproved ORDER BY SD.startDate DESC"),
+		@NamedQuery(name = "StoppageDetails.findByEmployeeId", query = "SELECT SD FROM StoppageDetails SD WHERE SD.employeeId = :employeeId ORDER BY SD.startDate DESC") })
 public class StoppageDetails {
 	@Id
 	@Column(name = "\"ID\"", columnDefinition = "VARCHAR(32)")
@@ -51,6 +52,50 @@ public class StoppageDetails {
 
 	@Column(name = "\"THERAPY_END_DATE\"", columnDefinition = "SECONDDATE")
 	private Date therapyEndDate;
+
+	@Column(name = "\"ACCIDENT_TYPE\"", columnDefinition = "String(32)")
+	private String accidentType;
+
+	@Column(name = "\"WITH_STOPPAGE\"", columnDefinition = "BOOLEAN")
+	private Boolean withStoppage;
+
+	@Column(name = "\"SICK_TYPE\"", columnDefinition = "String(32)")
+	private String sickType;
+
+	@Column(name = "\"PREGNANCY_RELATED\"", columnDefinition = "BOOLEAN")
+	private Boolean pregnancyRelated;
+
+	public String getAccidentType() {
+		return accidentType;
+	}
+
+	public void setAccidentType(String accidentType) {
+		this.accidentType = accidentType;
+	}
+
+	public Boolean getWithStoppage() {
+		return withStoppage;
+	}
+
+	public void setWithStoppage(Boolean withStoppage) {
+		this.withStoppage = withStoppage;
+	}
+
+	public String getSickType() {
+		return sickType;
+	}
+
+	public void setSickType(String sickType) {
+		this.sickType = sickType;
+	}
+
+	public Boolean getPregnancyRelated() {
+		return pregnancyRelated;
+	}
+
+	public void setPregnancyRelated(Boolean pregnancyRelated) {
+		this.pregnancyRelated = pregnancyRelated;
+	}
 
 	public Boolean getIsTherapeutic() {
 		return isTherapeutic;

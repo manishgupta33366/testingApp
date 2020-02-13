@@ -18,4 +18,5 @@ public class DBConfiguration {
 	public static final String FHD_COUNTRIES = "\"" + ARTIFACT_PATH + TABLE_PATH + "DGEN_COUNTRIES\"";
 
 	public static final String TEMPLATE_TEST = "\"" + ARTIFACT_PATH + TABLE_PATH + "TEMPLATE_TEST\"";
+	public static final String TEMPLATE_DETAILS = "\"" + ARTIFACT_PATH + TABLE_PATH + "TEMPLATE_DETAILS\"";
 }
