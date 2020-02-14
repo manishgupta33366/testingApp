@@ -11,7 +11,7 @@ import com.nga.xtendhr.fastDoc.config.DBConfiguration;
 
 /*
  * AppName: DocGen
- * TableName: DGEN_TEMPLATES
+ * TableName: TEMPLATE_TEST
  * 
  * @author	:	Manish Gupta  
  * @email	:	manish.g@ngahr.com

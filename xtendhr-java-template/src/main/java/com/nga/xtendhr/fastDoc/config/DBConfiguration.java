@@ -37,4 +37,6 @@ public class DBConfiguration {
 	public static final String TEXT = "\"" + ARTIFACT_PATH + TABLE_PATH + "DGEN_TEXT\"";
 	public static final String FORMAT_SEPARATORS = "\"" + ARTIFACT_PATH + TABLE_PATH + "DGENC_FORMAT_SEPARATORS\"";
 	public static final String TEMPLATE_TEST = "\"" + ARTIFACT_PATH + TABLE_PATH + "TEMPLATE_TEST\"";
+	public static final String DOC_TEMPLATES = "\"" + ARTIFACT_PATH + TABLE_PATH + "DGEN_DOC_TEMPLATES\"";
+	public static final String DOC_TEMPLATE_DETAILS = "\"" + ARTIFACT_PATH + TABLE_PATH + "DGEN_DOC_TEMPLATE_DETAILS\"";
 }

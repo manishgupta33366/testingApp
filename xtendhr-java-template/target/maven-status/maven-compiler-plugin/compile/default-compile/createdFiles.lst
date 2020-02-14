@@ -18,10 +18,13 @@ com\nga\xtendhr\service\CountryServiceImp.class
 com\nga\xtendhr\fastDoc\service\EntitiesServiceImp.class
 com\nga\xtendhr\fastDoc\service\MapRuleFieldsService.class
 com\nga\xtendhr\fastDoc\service\MapTemplateCriteriaValuesServiceImp.class
+com\nga\xtendhr\fastDoc\model\DocTemplates.class
+com\nga\xtendhr\fastDoc\service\DocTemplateDetailsService.class
 com\nga\xtendhr\fastDoc\model\MapTemplateFields.class
 com\nga\xtendhr\service\CountryService.class
 com\nga\xtendhr\fastDoc\service\TemplateTestServiceImp.class
 com\nga\xtendhr\utility\GetDestinationClient.class
+com\nga\xtendhr\fastDoc\service\DocTemplatesService.class
 com\nga\xtendhr\fastDoc\service\CountryFastDocServiceImp.class
 com\nga\xtendhr\fastDoc\model\Fields.class
 com\nga\xtendhr\fastDoc\service\FormatSeparatorsServiceImp.class
@@ -39,6 +42,7 @@ com\nga\xtendhr\fastDoc\model\CountrySpecificFields.class
 com\nga\xtendhr\fastDoc\service\RulesServiceImp.class
 com\nga\xtendhr\fastDoc\model\Companies.class
 com\nga\xtendhr\fastDoc\service\TemplateFastDocService.class
+com\nga\xtendhr\fastDoc\service\DocTemplateDetailsServiceImp.class
 com\nga\xtendhr\fastDoc\service\MapTemplateFieldsService.class
 com\nga\xtendhr\fastDoc\model\Codelist.class
 com\nga\xtendhr\controller\DBDataRetriveSample.class
@@ -47,6 +51,7 @@ com\nga\xtendhr\controller\DocGeneration.class
 com\nga\xtendhr\fastDoc\service\MapCountryCompanyGroupService.class
 com\nga\xtendhr\fastDoc\service\EntitiesService.class
 com\nga\xtendhr\fastDoc\connection\DestinationClient.class
+com\nga\xtendhr\fastDoc\model\DocTemplateDetails.class
 com\nga\xtendhr\fastDoc\model\Rules.class
 com\nga\xtendhr\fastDoc\model\MapRuleFields.class
 com\nga\xtendhr\workStoppage\service\StoppageDetailsService.class
@@ -82,6 +87,7 @@ com\nga\xtendhr\controller\ApplicationTest.class
 com\nga\xtendhr\utility\CommonFunctions.class
 com\nga\xtendhr\fastDoc\service\ConfigurableTablesServiceImp.class
 com\nga\xtendhr\fastDoc\model\Groups.class
+com\nga\xtendhr\fastDoc\service\DocTemplatesServiceImp.class
 com\nga\xtendhr\workStoppage\model\StoppageDocuments.class
 com\nga\xtendhr\fastDoc\service\CountryFastDocService.class
 com\nga\xtendhr\fastDoc\model\MapCountryCompanyGroup.class

@@ -1,5 +1,6 @@
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\model\MapTemplateCriteriaValues.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\model\Operators.java
+C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\service\DocTemplatesServiceImp.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\service\MapTemplateCriteriaValuesService.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\utility\WordFileProcessing.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\model\MapCountryCompanyGroup.java
@@ -8,6 +9,7 @@ C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xten
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\service\EntitiesService.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\utility\GetDestinationClient.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\service\OperatorsServiceImp.java
+C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\service\DocTemplateDetailsServiceImp.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\service\CountrySpecificFieldsService.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\service\GroupsService.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\model\Country.java
@@ -48,6 +50,7 @@ C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xten
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\controller\DBDataRetriveSample.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\service\TextServiceImp.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\model\CodelistText.java
+C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\model\DocTemplates.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\model\SFDataMapping.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\controller\ApplicationTest.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\workStoppage\controller\Manager.java
@@ -69,6 +72,7 @@ C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xten
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\service\CodelistTextServiceImp.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\service\ConfigurableColumnsService.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\service\CompaniesServiceImp.java
+C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\service\DocTemplatesService.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\model\MapGroupTemplates.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\workStoppage\service\StoppageDetailsService.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\model\ConfigurableColumns.java
@@ -89,6 +93,7 @@ C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xten
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\utility\CommonFunctions.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\Application.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\model\TemplateFieldTag.java
+C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\model\DocTemplateDetails.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\service\TemplateCriteriaGenerationService.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\utility\CommonFunctions.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\model\FormatSeparators.java
@@ -99,6 +104,7 @@ C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xten
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\model\MapTemplateFields.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\service\CountryServiceImp.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\model\Text.java
+C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\service\DocTemplateDetailsService.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\service\TemplateCriteriaGenerationServiceImp.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\config\DBConfiguration.java
 C:\Users\manishg\git\testingApp\xtendhr-java-template\src\main\java\com\nga\xtendhr\fastDoc\service\TemplateFieldTagServiceImp.java

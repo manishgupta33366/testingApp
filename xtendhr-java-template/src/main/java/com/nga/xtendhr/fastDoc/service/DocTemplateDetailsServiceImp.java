@@ -1,0 +1,48 @@
+package com.nga.xtendhr.fastDoc.service;
+
+import java.util.List;
+
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import javax.persistence.Query;
+
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.nga.xtendhr.fastDoc.model.DocTemplateDetails;
+
+@Transactional
+@Component
+public class DocTemplateDetailsServiceImp implements DocTemplateDetailsService {
+
+	@PersistenceContext
+	EntityManager em;
+
+	@Override
+	@Transactional
+	public DocTemplateDetails create(DocTemplateDetails item) {
+		em.persist(item);
+		return item;
+	}
+
+	@Override
+	@Transactional
+	public DocTemplateDetails update(DocTemplateDetails item) {
+		em.merge(item);
+		return item;
+	}
+
+	@Override
+	@Transactional
+	public void delete(DocTemplateDetails item) {
+		em.remove(item);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<DocTemplateDetails> findAll() {
+		Query query = em.createNamedQuery("DocTemplateDetails.selectAll");
+		List<DocTemplateDetails> items = query.getResultList();
+		return items;
+	}
+}
