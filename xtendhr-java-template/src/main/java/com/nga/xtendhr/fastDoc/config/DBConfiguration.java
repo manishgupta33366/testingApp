@@ -1,8 +1,8 @@
 package com.nga.xtendhr.fastDoc.config;
 
 public class DBConfiguration {
-	public static final String SCHEMA_NAME = "AMREST_DOC_GENERATION";
-	public static final String ARTIFACT_PATH = "com.amrest.docgeneration";
+	public static final String SCHEMA_NAME = "NGA_FAST_DOC";
+	public static final String ARTIFACT_PATH = "com.nga.fastDoc";
 
 	public static final String TABLE_PATH = ".db::Table.";
 
