@@ -85,9 +85,11 @@ com\nga\xtendhr\fastDoc\model\Templates.class
 com\nga\xtendhr\fastDoc\service\TemplateFieldTagService.class
 com\nga\xtendhr\controller\ApplicationTest.class
 com\nga\xtendhr\utility\CommonFunctions.class
+com\nga\xtendhr\workStoppage\controller\Employee$1.class
 com\nga\xtendhr\fastDoc\service\ConfigurableTablesServiceImp.class
 com\nga\xtendhr\fastDoc\model\Groups.class
 com\nga\xtendhr\fastDoc\service\DocTemplatesServiceImp.class
+com\nga\xtendhr\fastDoc\controller\DocGen$1.class
 com\nga\xtendhr\workStoppage\model\StoppageDocuments.class
 com\nga\xtendhr\fastDoc\service\CountryFastDocService.class
 com\nga\xtendhr\fastDoc\model\MapCountryCompanyGroup.class

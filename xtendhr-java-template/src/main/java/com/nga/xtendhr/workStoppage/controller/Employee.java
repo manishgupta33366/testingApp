@@ -3,11 +3,22 @@ package com.nga.xtendhr.workStoppage.controller;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Base64;
+import java.util.Properties;
 import java.util.Random;
 
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.PasswordAuthentication;
+import javax.mail.Session;
+import javax.mail.Transport;
+import javax.mail.internet.AddressException;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+import javax.naming.NamingException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +40,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.nga.xtendhr.connection.DestinationClient;
+import com.nga.xtendhr.fastDoc.utility.CommonFunctions;
+import com.nga.xtendhr.fastDoc.utility.CommonVariables;
 import com.nga.xtendhr.workStoppage.model.StoppageDetails;
 import com.nga.xtendhr.workStoppage.model.StoppageDocuments;
 import com.nga.xtendhr.workStoppage.service.StoppageDetailsService;
@@ -149,7 +163,7 @@ public class Employee {
 		HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(bodyMap, headers);
 		RestTemplate restTemplate = new RestTemplate();
 		ResponseEntity<String> response = restTemplate.exchange(
-				"https://southcentralus.api.cognitive.microsoft.com/customvision/v3.0/Prediction/f6830796-4ee9-4bd1-87fd-57df2afe01dc/classify/iterations/Iteration4/image",
+				"https://southcentralus.api.cognitive.microsoft.com/customvision/v3.0/Prediction/f6830796-4ee9-4bd1-87fd-57df2afe01dc/classify/iterations/Iteration5/image",
 				HttpMethod.POST, requestEntity, String.class);
 		JSONObject responseObj = new JSONObject(response.getBody());
 		responseObj.put("userId", request.getUserPrincipal().getName());
@@ -169,4 +183,43 @@ public class Employee {
 			return new ResponseEntity<>("Error!", HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
+
+	@PostMapping(value = "/sendMail")
+	public ResponseEntity<?> sendMail(@RequestBody String requestData, HttpServletRequest request)
+			throws IOException, NamingException, AddressException, MessagingException {
+		JSONObject requestObj = new JSONObject(requestData);
+		HttpSession session = request.getSession(false);
+		DestinationClient javaDestClient = CommonFunctions.getDestinationCLient(CommonVariables.GMAIL_ACCOUNT);
+		Properties prop = new Properties();
+		prop.put("mail.smtp.host", javaDestClient.getDestProperty("smtpHost"));
+		prop.put("mail.smtp.port", javaDestClient.getDestProperty("port"));
+		prop.put("mail.smtp.auth", "true");
+		prop.put("mail.smtp.socketFactory.port", javaDestClient.getDestProperty("port"));
+		prop.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+
+		Session mailSession = Session.getInstance(prop, new javax.mail.Authenticator() {
+			protected PasswordAuthentication getPasswordAuthentication() {
+				return new PasswordAuthentication(javaDestClient.getDestProperty("User"),
+						javaDestClient.getDestProperty("Password"));
+			}
+		});
+
+		//
+		Message message = new MimeMessage(mailSession);
+		message.setFrom(new InternetAddress(javaDestClient.getDestProperty("User")));
+		JSONArray emailIds = requestObj.getJSONArray("sendTo");
+		for (int i = -0; i < emailIds.length(); i++) {
+			message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(emailIds.getString(i)));
+		}
+
+		message.setSubject("Testing Gmail SSL");
+		message.setText("," + "\n\n Test email!");
+		// message.setContent(Base64.getDecoder().decode((String)
+		// session.getAttribute("file")));
+		Transport.send(message);
+		System.out.println("Done");
+
+		return null;
+	}
+
 }

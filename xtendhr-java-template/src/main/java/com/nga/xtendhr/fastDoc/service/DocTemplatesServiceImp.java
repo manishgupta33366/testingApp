@@ -49,7 +49,7 @@ public class DocTemplatesServiceImp implements DocTemplatesService {
 	@SuppressWarnings("unchecked")
 	@Override
 	public List<DocTemplates> findById(String id) {
-		Query query = em.createNamedQuery("FormatSeparators.findByRuleFieldIdCountry").setParameter("id", id);
+		Query query = em.createNamedQuery("DocTemplates.findById").setParameter("id", id);
 		List<DocTemplates> items = query.getResultList();
 		return items;
 	}

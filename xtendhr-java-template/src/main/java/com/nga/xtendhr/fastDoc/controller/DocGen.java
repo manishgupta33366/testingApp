@@ -1,6 +1,7 @@
 package com.nga.xtendhr.fastDoc.controller;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -18,9 +19,21 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.Multipart;
+import javax.mail.PasswordAuthentication;
+import javax.mail.Session;
+import javax.mail.Transport;
+import javax.mail.internet.AddressException;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeBodyPart;
+import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
 import javax.naming.NamingException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -62,6 +75,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.nga.xtendhr.connection.DestinationClient;
 import com.nga.xtendhr.fastDoc.connection.BatchRequest;
 import com.nga.xtendhr.fastDoc.model.CodelistText;
 import com.nga.xtendhr.fastDoc.model.CountrySpecificFields;
@@ -215,6 +229,7 @@ public class DocGen {
 				response.addHeader("Content-Disposition", "attachment; filename=" + "GeneratedDoc-" + ".pdf"); // format
 																												// is
 																												// important
+
 				IOUtils.copy(convertedInputStream, response.getOutputStream());
 			}
 			response.flushBuffer();
@@ -345,6 +360,7 @@ public class DocGen {
 			docTemplatesService.create(docTemplate);
 
 			DocTemplateDetails docTemplateDetail = new DocTemplateDetails();
+			docTemplateDetail.setDocTemplateId(String.valueOf(randomNumber));
 			docTemplateDetail.setName(templateName);
 			docTemplateDetail.setDescription(templateDescription);
 			docTemplateDetailsService.create(docTemplateDetail);
@@ -3153,4 +3169,79 @@ public class DocGen {
 	/*
 	 *** Helper functions END***
 	 */
+
+	@PostMapping(value = "/sendFastDocMail")
+	public ResponseEntity<?> sendMail(@RequestParam(name = "templateId") String templateId,
+			@RequestParam(name = "inPDF") Boolean inPDF, @RequestBody String requestData, HttpServletRequest request)
+			throws IOException, NamingException, AddressException, MessagingException {
+		JSONObject requestObj = new JSONObject(requestData);
+		HttpSession session = request.getSession(false);
+		DestinationClient javaDestClient = CommonFunctions.getDestinationCLient(CommonVariables.GMAIL_ACCOUNT);
+		Properties prop = new Properties();
+		prop.put("mail.smtp.host", javaDestClient.getDestProperty("smtpHost"));
+		prop.put("mail.smtp.port", javaDestClient.getDestProperty("port"));
+		prop.put("mail.smtp.auth", "true");
+		prop.put("mail.smtp.socketFactory.port", javaDestClient.getDestProperty("port"));
+		prop.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+
+		Session mailSession = Session.getInstance(prop, new javax.mail.Authenticator() {
+			protected PasswordAuthentication getPasswordAuthentication() {
+				return new PasswordAuthentication(javaDestClient.getDestProperty("User"),
+						javaDestClient.getDestProperty("Password"));
+			}
+		});
+
+		//
+		Message message = new MimeMessage(mailSession);
+		message.setFrom(new InternetAddress(javaDestClient.getDestProperty("User")));
+		JSONArray emailIds = requestObj.getJSONArray("sendTo");
+		for (int i = -0; i < emailIds.length(); i++) {
+			message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(emailIds.getString(i)));
+		}
+
+		message.setSubject("Testing Gmail SSL");
+		message.setText("," + "\n\n Test email!");
+		// message.setContent(Base64.getDecoder().decode((String)
+		// session.getAttribute("file")));
+
+		DocTemplates docTemplate = docTemplatesService.findById(templateId).get(0);// Template saved in DB
+		InputStream inputStream = new ByteArrayInputStream(docTemplate.getTemplate()); // creating input-stream
+																						// from
+																						// template to create docx
+																						// file
+		XWPFDocument doc = new XWPFDocument(inputStream);
+		Random random = new Random(); // to generate a random fileName
+		int randomNumber = random.nextInt(987656554);
+
+		File file;
+		if (!inPDF) {
+			FileOutputStream fileOutputStream = new FileOutputStream("GeneratedDoc_" + randomNumber + ".docx"); // Temp
+																												// location
+			doc.write(fileOutputStream);// writing the updated Template to FileOutputStream // to save file
+			file = new File(Paths.get("GeneratedDoc_" + randomNumber + ".docx").toString()); // reading the file
+			// generated from
+			// fileOutputStream
+
+		} else {
+			FileOutputStream fileOutputStream = new FileOutputStream("GeneratedDoc_" + randomNumber + ".pdf"); // Temp
+																												// location
+			PdfOptions options = PdfOptions.create().fontEncoding("windows-1250");
+			PdfConverter.getInstance().convert(doc, fileOutputStream, options);
+			file = new File(Paths.get("GeneratedDoc_" + randomNumber + ".pdf").toString());
+		}
+
+		MimeBodyPart attachmentPart = new MimeBodyPart();
+		MimeBodyPart textPart = new MimeBodyPart();
+		Multipart multipart = new MimeMultipart();
+		attachmentPart.attachFile(file);
+		textPart.setText("This is text");
+		multipart.addBodyPart(textPart);
+		multipart.addBodyPart(attachmentPart);
+		message.setContent(multipart);
+
+		Transport.send(message);
+		System.out.println("Done");
+
+		return null;
+	}
 }

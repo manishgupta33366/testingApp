@@ -104,6 +104,12 @@
 			<artifactId>jjwt</artifactId>
 			<version>0.9.1</version>
 		</dependency>
+		
+		<!-- Dependency for sending mails -->
+		<dependency>
+		<groupId>com.sun.mail</groupId>
+		<artifactId>javax.mail</artifactId>
+		</dependency>
 	</dependencies>
 
 	<properties>
