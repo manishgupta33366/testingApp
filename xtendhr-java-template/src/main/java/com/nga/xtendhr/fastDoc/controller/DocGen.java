@@ -575,7 +575,7 @@ public class DocGen {
 	}
 
 	@GetMapping(value = "/login")
-	public ResponseEntity<?> login(HttpServletRequest request) {
+	public ResponseEntity<?> login(HttpServletRequest request, HttpServletResponse httpResponse) {
 		try {
 			HttpSession session = request.getSession(false);
 			String loggedInUser = request.getUserPrincipal().getName();
@@ -595,7 +595,7 @@ public class DocGen {
 				session.setAttribute("adminLoginStatus", "Success");
 				response.put("isAdmin", true);
 			}
-			session.setAttribute("locale", getLocale(session));
+			session.setAttribute("locale", getLocale(session, httpResponse));
 			return ResponseEntity.ok().body(response.toString());// True to create a new session for the logged-in user
 																	// as its the initial call
 		} catch (Exception e) {
@@ -716,7 +716,8 @@ public class DocGen {
 
 	@GetMapping(value = "/executeRule")
 	public ResponseEntity<?> executeRule(@RequestParam(name = "ruleID") String ruleID, HttpServletRequest request,
-			@RequestParam(name = "fromDate") String fromDate, @RequestParam(name = "inactive") String inactive) {
+			@RequestParam(name = "fromDate") String fromDate, @RequestParam(name = "inactive") String inactive,
+			HttpServletResponse httpResponse) {
 		try {
 			HttpSession session = request.getSession(false);// false is not create new session and use the existing
 															// session
@@ -725,7 +726,8 @@ public class DocGen {
 			requestData.put("inactive", inactive);
 			session.setAttribute("requestData", requestData.toString());
 			return session.getAttribute("loginStatus") != null
-					? ResponseEntity.ok().body(getRuleData(ruleID, session, false).toString()) // forDirectReport false
+					? ResponseEntity.ok().body(getRuleData(ruleID, session, false, httpResponse).toString()) // forDirectReport
+																												// false
 					: new ResponseEntity<>("Session timeout! Please Login again!", HttpStatus.INTERNAL_SERVER_ERROR);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -735,7 +737,7 @@ public class DocGen {
 
 	@PostMapping(value = "/executeRule")
 	public ResponseEntity<?> executePostRule(@RequestParam(name = "ruleID") String ruleID, HttpServletRequest request,
-			@RequestBody String requestData) {
+			HttpServletResponse response, @RequestBody String requestData) {
 		try {
 			HttpSession session = request.getSession(false);// false is not create new session and use the existing
 															// session
@@ -748,8 +750,9 @@ public class DocGen {
 			String ruleName = rulesService.findByRuleID(ruleID).get(0).getName();
 			// Calling function dynamically
 			// more Info here: https://www.baeldung.com/java-method-reflection
-			Method method = this.getClass().getDeclaredMethod(ruleName, String.class, HttpSession.class, Boolean.class);
-			return ResponseEntity.ok().body((String) method.invoke(this, ruleID, session, false));
+			Method method = this.getClass().getDeclaredMethod(ruleName, String.class, HttpSession.class, Boolean.class,
+					HttpServletResponse.class);
+			return ResponseEntity.ok().body((String) method.invoke(this, ruleID, session, false, response));
 		} catch (Exception e) {
 			e.printStackTrace();
 			return new ResponseEntity<>("Error!", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -840,10 +843,10 @@ public class DocGen {
 		}
 	}
 
-	public ResponseEntity<?> adminOnSearchUserSelect(String ruleID, HttpSession session, Boolean forDirectReport)
-			throws BatchException, JSONException, ClientProtocolException, UnsupportedOperationException,
-			NamingException, URISyntaxException, IOException, NoSuchMethodException, SecurityException,
-			IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+	public ResponseEntity<?> adminOnSearchUserSelect(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, JSONException, ClientProtocolException,
+			UnsupportedOperationException, NamingException, URISyntaxException, IOException, NoSuchMethodException,
+			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		try {
 			/*
 			 * Rule required to get data for a specific User (Accessible only by Admin)
@@ -886,7 +889,8 @@ public class DocGen {
 				JSONObject response = new JSONObject(callSFSingle(tempMapRuleField.getKey(), url));
 				for (int i = 0; i < fieldsArray.length(); i++) {
 					field = fieldsService.findByID(fieldsArray.getString(i)).get(0);// get field from the fields table
-					fieldValue = getValueFromPath(field.getValueFromPath(), response, session, false, null);
+					fieldValue = getValueFromPath(field.getValueFromPath(), response, session, false, null,
+							httpResponse);
 					responseObj.put(field.getTechnicalName(), fieldValue);
 				}
 
@@ -935,10 +939,10 @@ public class DocGen {
 		}
 	}
 
-	String adminGetGroupsOfDirectReport(String ruleID, HttpSession session, Boolean forDirectReport)
-			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
-			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
-			NamingException, URISyntaxException, IOException {
+	String adminGetGroupsOfDirectReport(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, ClientProtocolException,
+			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException {
 		// Rule in DB to get groups of a direct report for Admin
 
 		JSONObject requestData = new JSONObject((String) session.getAttribute("requestData"));
@@ -954,9 +958,11 @@ public class DocGen {
 					+ requestData.getString("userID"));
 			return "Error! You are not authorized to access this resource! This event has been logged!";
 		}
-		getFieldValue(mapRuleField.get(0).getField(), session, true, null);// get data of direct report
-		String countryID = getFieldValue(mapRuleField.get(1).getField(), session, true, null);// forDirectReport true
-		String companyID = getFieldValue(mapRuleField.get(2).getField(), session, true, null);// forDirectReport true
+		getFieldValue(mapRuleField.get(0).getField(), session, true, null, httpResponse);// get data of direct report
+		String countryID = getFieldValue(mapRuleField.get(1).getField(), session, true, null, httpResponse);// forDirectReport
+		// true
+		String companyID = getFieldValue(mapRuleField.get(2).getField(), session, true, null, httpResponse);// forDirectReport
+		// true
 		if (countryID.equals("") || companyID.equals(""))
 			return "";
 		Iterator<MapCountryCompanyGroup> iterator = mapCountryCompanyGroupService
@@ -991,10 +997,10 @@ public class DocGen {
 		return response.toString();
 	}
 
-	String adminGetTemplatesOfDirectReports(String ruleID, HttpSession session, Boolean forDirectReport)
-			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
-			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
-			NamingException, URISyntaxException, IOException {
+	String adminGetTemplatesOfDirectReports(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, ClientProtocolException,
+			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException {
 		// Rule in DB to get templates of a direct report for admin
 
 		JSONObject requestData = new JSONObject((String) session.getAttribute("requestData"));
@@ -1011,14 +1017,16 @@ public class DocGen {
 		}
 
 		List<MapRuleFields> mapRuleField = mapRuleFieldsService.findByRuleID(ruleID);
-		getFieldValue(mapRuleField.get(0).getField(), session, true, null);// get data of direct report
-		String directReportCountryID = getFieldValue(mapRuleField.get(1).getField(), session, true, null);// forDirectReport
-																											// true
-		String directReportCompanyID = getFieldValue(mapRuleField.get(2).getField(), session, true, null);// forDirectReport
-																											// true
-		getFieldValue(mapRuleField.get(3).getField(), session, true, null);// get Templates from Azure and set that
-																			// in
-																			// session and forDirectReport true
+		getFieldValue(mapRuleField.get(0).getField(), session, true, null, httpResponse);// get data of direct report
+		String directReportCountryID = getFieldValue(mapRuleField.get(1).getField(), session, true, null, httpResponse);// forDirectReport
+		// true
+		String directReportCompanyID = getFieldValue(mapRuleField.get(2).getField(), session, true, null, httpResponse);// forDirectReport
+		// true
+		// getFieldValue(mapRuleField.get(3).getField(), session, true, null,
+		// httpResponse);// get Templates from Azure and
+		// set that
+		// in
+		// session and forDirectReport true
 
 		/*
 		 *** Security Check *** Checking if groupID passed from UI is actually available
@@ -1041,10 +1049,13 @@ public class DocGen {
 				return "You are not authorized to access this data! This event has been logged!";
 			}
 
-			// get available Templates in Azure from Session
-			@SuppressWarnings("unchecked")
-			Map<String, JSONObject> templatesAvailableInAzure = (Map<String, JSONObject>) session
-					.getAttribute("availableTemplatesForDirectReport");
+			/*
+			 * // get available Templates in Azure from Session
+			 * 
+			 * @SuppressWarnings("unchecked") Map<String, JSONObject>
+			 * templatesAvailableInAzure = (Map<String, JSONObject>) session
+			 * .getAttribute("availableTemplatesForDirectReport");
+			 */
 
 			// Now getting templates those are available for the userID provided from UI
 			List<MapGroupTemplates> mapGroupTemplate = mapGroupTemplateService.findByGroupID(groupID);
@@ -1074,14 +1085,15 @@ public class DocGen {
 				// Generating criteria for each template to check if its valid for the loggedIn
 				// user
 				templateID = tempMapGroupTemplate.getTemplateID();
-				criteriaSatisfied = checkCriteria(templateID, session, true); // forDirectReport true
+				criteriaSatisfied = checkCriteria(templateID, session, true, httpResponse); // forDirectReport true
 				if (criteriaSatisfied) {
 					// check if the template is available in Azure
-					if (!templatesAvailableInAzure.containsKey(tempMapGroupTemplate.getTemplate().getName())) {
-						tempTemplateObj.put("availableInAzure", false);
-						tempResponse.put(tempTemplateObj);
-						continue;
-					}
+					/*
+					 * if
+					 * (!templatesAvailableInAzure.containsKey(tempMapGroupTemplate.getTemplate().
+					 * getName())) { tempTemplateObj.put("availableInAzure", false);
+					 * tempResponse.put(tempTemplateObj); continue; }
+					 */
 					tempResponse.put(tempTemplateObj);
 				}
 			}
@@ -1090,7 +1102,7 @@ public class DocGen {
 		return response.toString();
 	}
 
-	String adminGetGroups(String ruleID, HttpSession session, Boolean forDirectReport)
+	String adminGetGroups(String ruleID, HttpSession session, Boolean forDirectReport, HttpServletResponse httpResponse)
 			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
 			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
 			NamingException, URISyntaxException, IOException {
@@ -1107,7 +1119,7 @@ public class DocGen {
 		}
 
 		// Rule in DB required to get Groups of current loggenIn user
-		JSONObject ruleData = getRuleData(ruleID, session, forDirectReport);
+		JSONObject ruleData = getRuleData(ruleID, session, forDirectReport, httpResponse);
 		List<MapRuleFields> mapRuleField = mapRuleFieldsService.findByRuleID(ruleID);
 		String countryID = ruleData.getString(mapRuleField.get(0).getField().getTechnicalName());
 		String companyID = ruleData.getString(mapRuleField.get(1).getField().getTechnicalName());
@@ -1143,8 +1155,9 @@ public class DocGen {
 		return response.toString();
 	}
 
-	String getDirectReportData(String ruleID, HttpSession session, Boolean forDirectReport) throws BatchException,
-			ClientProtocolException, UnsupportedOperationException, NamingException, URISyntaxException, IOException {
+	String getDirectReportData(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, ClientProtocolException,
+			UnsupportedOperationException, NamingException, URISyntaxException, IOException {
 		// Rule in DB get Data of a DirectReport for Admin
 
 		/*
@@ -1182,10 +1195,11 @@ public class DocGen {
 		return "true";
 	}
 
-	String adminDocDownloadDirectReport(String ruleID, HttpSession session, Boolean forDirectReport)
+	String adminDocDownloadDirectReport(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse)
 			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
 			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
-			NamingException, URISyntaxException, IOException {
+			NamingException, URISyntaxException, IOException, XmlException {
 
 		// Rule in DB to download doc of Direct report for Admin
 
@@ -1202,7 +1216,7 @@ public class DocGen {
 		JSONObject requestData = new JSONObject((String) session.getAttribute("requestData"));
 		String loggerInUser = (String) session.getAttribute("loggedInUser");
 		String templateID = requestData.getString("templateID");
-
+		Boolean inPDF = requestData.getBoolean("inPDF");
 		/*
 		 *** Security Check *** Checking if templateID passed from UI is actually
 		 * available for the loggedIn user
@@ -1226,15 +1240,18 @@ public class DocGen {
 			session.removeAttribute("directReportEntities-" + requestData.getString("userID") + entityNamesItr.next());
 		}
 		// Now Generating Object to POST
-		JSONObject docRequestObject = getDocPostObject(templateID, session, true);// for direct Report true
+		JSONObject docRequestObject = getDocTagsObject(templateID, session, true, httpResponse);// for direct Report
+																								// true
 		logger.debug("Doc Generation Request Obj: " + docRequestObject.toString());
-		return getDocFromAPI(docRequestObject);
+
+		return generateDoc(docRequestObject, templateID, inPDF, httpResponse);
 	}
 
-	String adminDocDownload(String ruleID, HttpSession session, Boolean forDirectReport)
+	String adminDocDownload(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse)
 			throws BatchException, JSONException, ClientProtocolException, UnsupportedOperationException,
 			NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException,
-			InvocationTargetException, NamingException, URISyntaxException, IOException {
+			InvocationTargetException, NamingException, URISyntaxException, IOException, XmlException {
 
 		// Rule in DB to download doc for Admin
 		String loggerInUser = (String) session.getAttribute("loggedInUser");
@@ -1250,13 +1267,14 @@ public class DocGen {
 		}
 		JSONObject requestData = new JSONObject((String) session.getAttribute("requestData"));
 		String templateID = requestData.getString("templateID");
+		Boolean inPDF = requestData.getBoolean("inPDF");
 
 		/*
 		 *** Security Check *** Checking if templateID passed from UI is actually
 		 * available for the loggedIn user
 		 */
 
-		if (!adminTemplateAvailableCheck(ruleID, session, false)) { // for DirectReport
+		if (!adminTemplateAvailableCheck(ruleID, session, false, httpResponse)) { // for DirectReport
 			logger.error("Unauthorized access! User: " + loggerInUser
 					+ " Tried downloading document of a template that is not assigned for this user, templateID: "
 					+ templateID);
@@ -1271,15 +1289,16 @@ public class DocGen {
 			session.removeAttribute(entityNamesItr.next());
 		}
 		// Now Generating Object to POST
-		JSONObject docRequestObject = getDocPostObject(templateID, session, false); // for direct report false
+		JSONObject docRequestObject = getDocTagsObject(templateID, session, false, httpResponse); // for direct report
+																									// false
 		logger.debug("Doc Generation Request Obj: " + docRequestObject.toString());
-		return getDocFromAPI(docRequestObject);
+		return generateDoc(docRequestObject, templateID, inPDF, httpResponse);
 	}
 
-	String adminGetTemplates(String ruleID, HttpSession session, Boolean forDirectReport)
-			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
-			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
-			NamingException, URISyntaxException, IOException {
+	String adminGetTemplates(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, ClientProtocolException,
+			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException {
 		// Rule in DB to get templates of a Group of admin
 
 		/*
@@ -1297,8 +1316,9 @@ public class DocGen {
 		 *** Security Check *** Checking if groupID passed from UI is actually available
 		 * for the loggerIn user
 		 */
-		JSONObject ruleData = getRuleData(ruleID, session, false); // forDirectReport false as this rule is for the
-																	// loggedIn user
+		JSONObject ruleData = getRuleData(ruleID, session, false, httpResponse); // forDirectReport false as this rule
+																					// is for the
+		// loggedIn user
 		List<MapRuleFields> mapRuleField = mapRuleFieldsService.findByRuleID(ruleID);
 		String countryID = ruleData.getString(mapRuleField.get(0).getField().getTechnicalName());
 		String companyID = ruleData.getString(mapRuleField.get(1).getField().getTechnicalName());
@@ -1320,9 +1340,11 @@ public class DocGen {
 				return "You are not authorized to access this data! This event has been logged!";
 			}
 			// get available Templates in Azure from Session
-			@SuppressWarnings("unchecked")
-			Map<String, JSONObject> templatesAvailableInAzure = (Map<String, JSONObject>) session
-					.getAttribute("availableTemplatesInAzure");
+			/*
+			 * @SuppressWarnings("unchecked") Map<String, JSONObject>
+			 * templatesAvailableInAzure = (Map<String, JSONObject>) session
+			 * .getAttribute("availableTemplatesInAzure");
+			 */
 			List<MapGroupTemplates> mapGroupTemplate = mapGroupTemplateService.findByGroupID(groupID);
 			// Now Iterating for each template assigned to the provided group
 			Iterator<MapGroupTemplates> iterator = mapGroupTemplate.iterator();
@@ -1349,14 +1371,15 @@ public class DocGen {
 				// Generating criteria for each template to check if its valid for the loggedIn
 				// user
 				templateID = tempMapGroupTemplate.getTemplateID();
-				criteriaSatisfied = checkCriteria(templateID, session, false); // forDirectReport false
+				criteriaSatisfied = checkCriteria(templateID, session, false, httpResponse); // forDirectReport false
 				if (criteriaSatisfied) {
 					// check if the template is available in Azure
-					if (!templatesAvailableInAzure.containsKey(tempMapGroupTemplate.getTemplate().getName())) {
-						tempTemplateObj.put("availableInAzure", false);
-						tempResponse.put(tempTemplateObj);
-						continue;
-					}
+					/*
+					 * if
+					 * (!templatesAvailableInAzure.containsKey(tempMapGroupTemplate.getTemplate().
+					 * getName())) { tempTemplateObj.put("availableInAzure", false);
+					 * tempResponse.put(tempTemplateObj); continue; }
+					 */
 					tempResponse.put(tempTemplateObj);
 				}
 			}
@@ -1365,16 +1388,16 @@ public class DocGen {
 		return response.toString();
 	}
 
-	private Boolean adminTemplateAvailableCheck(String ruleID, HttpSession session, Boolean forDirectReport)
-			throws BatchException, JSONException, ClientProtocolException, UnsupportedOperationException,
-			NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException,
-			InvocationTargetException, NamingException, URISyntaxException, IOException {
+	private Boolean adminTemplateAvailableCheck(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, JSONException, ClientProtocolException,
+			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException {
 		try {
 			List<MapRuleFields> mapRuleField = mapRuleFieldsService.findByRuleID(ruleID);
 			JSONObject requestData = new JSONObject((String) session.getAttribute("requestData"));
 			JSONArray availableTemplates;
 			JSONArray availableGroups = new JSONArray(
-					getFieldValue(mapRuleField.get(0).getField(), session, forDirectReport, null));
+					getFieldValue(mapRuleField.get(0).getField(), session, forDirectReport, null, httpResponse));
 			logger.debug("Available Groups:" + availableGroups.toString() + " ::: forDirectReport" + forDirectReport);
 			String groupID;
 			JSONObject tempAvailableTemplatesObj;
@@ -1385,11 +1408,12 @@ public class DocGen {
 				requestData.put("groupID", new JSONArray().put(groupID));
 				session.setAttribute("requestData", requestData.toString());
 				tempAvailableTemplatesObj = new JSONObject(
-						getFieldValue(mapRuleField.get(1).getField(), session, forDirectReport, null));// Object of
-																										// Available
-																										// Templates for
-																										// the
-																										// groups
+						getFieldValue(mapRuleField.get(1).getField(), session, forDirectReport, null, httpResponse));// Object
+																														// of
+				// Available
+				// Templates for
+				// the
+				// groups
 				availableTemplates = tempAvailableTemplatesObj.getJSONArray(groupID);
 				logger.debug("Available templates:" + availableTemplates.toString() + " ::: forDirectReport"
 						+ forDirectReport);
@@ -1414,7 +1438,8 @@ public class DocGen {
 	 *** GET Rules Start***
 	 */
 
-	public ResponseEntity<?> searchUser(String ruleID, HttpSession session, Boolean forDirectReport)
+	public ResponseEntity<?> searchUser(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse)
 			throws ClientProtocolException, IOException, URISyntaxException, NamingException {
 
 		// rule to search a user on UI, will work for both Admin and Manager
@@ -1426,9 +1451,10 @@ public class DocGen {
 			 *
 			 */
 			MapRuleFields mapRuleField = mapRuleFieldsService.findByRuleID(ruleID).get(0);
-			Boolean isManager = Boolean.parseBoolean(getFieldValue(mapRuleField.getField(), session, false, null)); // For
-																													// directReport
-																													// false
+			Boolean isManager = Boolean
+					.parseBoolean(getFieldValue(mapRuleField.getField(), session, false, null, httpResponse)); // For
+			// directReport
+			// false
 			logger.debug("Search User Rule: isManager: " + isManager);
 			if (session.getAttribute("adminLoginStatus") == null && !isManager) {
 				logger.error("Unauthorized access! User:" + (String) session.getAttribute("loggedInUser")
@@ -1464,10 +1490,10 @@ public class DocGen {
 		}
 	}
 
-	String getSelectedUserDetails(String ruleID, HttpSession session, Boolean forDirectReport)
-			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
-			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
-			NamingException, URISyntaxException, IOException {
+	String getSelectedUserDetails(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, ClientProtocolException,
+			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException {
 
 		// rule to details of a user on UI, will work for both Admin and Manager
 		/*
@@ -1476,27 +1502,28 @@ public class DocGen {
 		 *
 		 */
 		MapRuleFields mapRuleField = mapRuleFieldsService.findByRuleID(ruleID).get(0);
-		Boolean isManager = Boolean.parseBoolean(getFieldValue(mapRuleField.getField(), session, false, null)); // For
-																												// directReport
-																												// false
+		Boolean isManager = Boolean
+				.parseBoolean(getFieldValue(mapRuleField.getField(), session, false, null, httpResponse)); // For
+		// directReport
+		// false
 		logger.debug("getSelectedUserDetails Rule: isManager: " + isManager);
 		if (session.getAttribute("adminLoginStatus") == null && !isManager) {
 			logger.error("Unauthorized access! User:" + (String) session.getAttribute("loggedInUser")
 					+ ", which is not an admin or a Manager in SF, tried to search a user.");
 			return "Error! You are not authorized to access this resource! This event has been logged!";
 		}
-		JSONObject ruleData = getRuleData(ruleID, session, true);
+		JSONObject ruleData = getRuleData(ruleID, session, true, httpResponse);
 		return (ruleData.toString());
 
 	}
 
-	String calculateAge(String ruleID, HttpSession session, Boolean forDirectReport)
+	String calculateAge(String ruleID, HttpSession session, Boolean forDirectReport, HttpServletResponse httpResponse)
 			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
 			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
 			NamingException, URISyntaxException, IOException {
 		// Rule in DB required to get age
 		MapRuleFields mapRuleField = mapRuleFieldsService.findByRuleID(ruleID).get(0);
-		String dob = getFieldValue(mapRuleField.getField(), session, forDirectReport, null);
+		String dob = getFieldValue(mapRuleField.getField(), session, forDirectReport, null, httpResponse);
 		String dobms = dob.substring(dob.indexOf("(") + 1, dob.indexOf(")"));
 		Date dobDate = new Date(Long.parseLong(dobms));
 		Date today = new Date();
@@ -1506,14 +1533,14 @@ public class DocGen {
 		return Long.toString(diff / 365);
 	}
 
-	String formatCurrentDate(String ruleID, HttpSession session, Boolean forDirectReport)
-			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
-			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
-			NamingException, URISyntaxException, IOException {
+	String formatCurrentDate(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, ClientProtocolException,
+			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException {
 		// Rule in DB Required to format dates
 		List<MapRuleFields> mapRuleField = mapRuleFieldsService.findByRuleID(ruleID);
 
-		String language = getFieldValue(mapRuleField.get(0).getField(), session, forDirectReport, null);
+		String language = getFieldValue(mapRuleField.get(0).getField(), session, forDirectReport, null, httpResponse);
 		Calendar cal = Calendar.getInstance();
 		long dateToFormat = cal.getTimeInMillis(); // current date and time
 		Date date;
@@ -1547,18 +1574,19 @@ public class DocGen {
 		}
 	}
 
-	String checkIfManager(String ruleID, HttpSession session, Boolean forDirectReport)
+	String checkIfManager(String ruleID, HttpSession session, Boolean forDirectReport, HttpServletResponse httpResponse)
 			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
 			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
 			NamingException, URISyntaxException, IOException {
 		// Rule in DB required to check if current loggenIn user is a manager
 		MapRuleFields mapRuleField = mapRuleFieldsService.findByRuleID(ruleID).get(0);
-		JSONArray directReports = new JSONArray(getFieldValue(mapRuleField.getField(), session, forDirectReport, null));
+		JSONArray directReports = new JSONArray(
+				getFieldValue(mapRuleField.getField(), session, forDirectReport, null, httpResponse));
 		String isManager = directReports.length() > 0 ? "true" : "false";
 		return isManager;
 	}
 
-	String checkIfAdmin(String ruleID, HttpSession session, Boolean forDirectReport)
+	String checkIfAdmin(String ruleID, HttpSession session, Boolean forDirectReport, HttpServletResponse httpResponse)
 			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
 			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
 			NamingException, URISyntaxException, IOException {
@@ -1566,12 +1594,12 @@ public class DocGen {
 		return session.getAttribute("adminLoginStatus") != null ? "true" : "false";
 	}
 
-	String getGroups(String ruleID, HttpSession session, Boolean forDirectReport)
+	String getGroups(String ruleID, HttpSession session, Boolean forDirectReport, HttpServletResponse httpResponse)
 			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
 			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
 			NamingException, URISyntaxException, IOException {
 		// Rule in DB required to get Groups of current loggenIn user
-		JSONObject ruleData = getRuleData(ruleID, session, forDirectReport);
+		JSONObject ruleData = getRuleData(ruleID, session, forDirectReport, httpResponse);
 		List<MapRuleFields> mapRuleField = mapRuleFieldsService.findByRuleID(ruleID);
 		String countryID = ruleData.getString(mapRuleField.get(0).getField().getTechnicalName());
 		String companyID = ruleData.getString(mapRuleField.get(1).getField().getTechnicalName());
@@ -1609,8 +1637,9 @@ public class DocGen {
 		return response.toString();
 	}
 
-	String isDirectReport(String ruleID, HttpSession session, Boolean forDirectReport) throws BatchException,
-			ClientProtocolException, UnsupportedOperationException, NamingException, URISyntaxException, IOException {
+	String isDirectReport(String ruleID, HttpSession session, Boolean forDirectReport, HttpServletResponse httpResponse)
+			throws BatchException, ClientProtocolException, UnsupportedOperationException, NamingException,
+			URISyntaxException, IOException {
 		// Rule in DB to check if the logged in user is exactly a manager of the user
 		// provided
 		JSONObject requestObj = new JSONObject((String) session.getAttribute("requestData"));
@@ -1642,10 +1671,10 @@ public class DocGen {
 		return isDirectReport;
 	}
 
-	String getDirectReportCountry(String ruleID, HttpSession session, Boolean forDirectReport)
-			throws BatchException, JSONException, ClientProtocolException, UnsupportedOperationException,
-			NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException,
-			InvocationTargetException, NamingException, URISyntaxException, IOException {
+	String getDirectReportCountry(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, JSONException, ClientProtocolException,
+			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException {
 		// Rule in DB to get country of direct Report
 		// Before this rule isDirectReport must be mapped in order to check if usedID
 		// provided in post body is exactly a direct Report of loggedIn user and to set
@@ -1655,13 +1684,14 @@ public class DocGen {
 		MapRuleFields mapRuleField = mapRuleFieldsService.findByRuleID(ruleID).get(0);
 		JSONObject directReportData = new JSONObject(
 				(String) session.getAttribute("directReportData-" + directReportUserID));
-		return getValueFromPath(mapRuleField.getValueFromPath(), directReportData, session, forDirectReport, null);
+		return getValueFromPath(mapRuleField.getValueFromPath(), directReportData, session, forDirectReport, null,
+				httpResponse);
 	}
 
-	String getDirectReportCompany(String ruleID, HttpSession session, Boolean forDirectReport)
-			throws BatchException, JSONException, ClientProtocolException, UnsupportedOperationException,
-			NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException,
-			InvocationTargetException, NamingException, URISyntaxException, IOException {
+	String getDirectReportCompany(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, JSONException, ClientProtocolException,
+			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException {
 		// Rule in DB to get company of direct Report
 		// Before this rule isDirectReport must be mapped in order to check if usedID
 		// provided in post body is exactly a direct Report of loggedIn user and to set
@@ -1671,23 +1701,25 @@ public class DocGen {
 		MapRuleFields mapRuleField = mapRuleFieldsService.findByRuleID(ruleID).get(0);
 		JSONObject directReportData = new JSONObject(
 				(String) session.getAttribute("directReportData-" + directReportUserID));
-		return getValueFromPath(mapRuleField.getValueFromPath(), directReportData, session, forDirectReport, null);
+		return getValueFromPath(mapRuleField.getValueFromPath(), directReportData, session, forDirectReport, null,
+				httpResponse);
 	}
 
-	String getDirectReports(String ruleID, HttpSession session, Boolean forDirectReport)
-			throws BatchException, JSONException, ClientProtocolException, UnsupportedOperationException,
-			NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException,
-			InvocationTargetException, NamingException, URISyntaxException, IOException {
+	String getDirectReports(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, JSONException, ClientProtocolException,
+			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException {
 		// Rule in DB to get direct report (2 levels) of the loggedIn User
 
 		try {
 			List<MapRuleFields> mapRuleField = mapRuleFieldsService.findByRuleID(ruleID);
 			// getting the Parent/root array containing directReports
 			JSONArray parentDirectReportArray = new JSONArray(
-					getFieldValue(mapRuleField.get(0).getField(), session, forDirectReport, null)); // get DirectReports
-																									// of
-																									// the user Two
-																									// level
+					getFieldValue(mapRuleField.get(0).getField(), session, forDirectReport, null, httpResponse)); // get
+																													// DirectReports
+			// of
+			// the user Two
+			// level
 			JSONArray responseDirectReports = new JSONArray();
 			JSONArray tempHoldChildDirectReports = new JSONArray();
 			String childDirectReportsPath = mapRuleField.get(1).getValueFromPath();// Path to fetch Child Direct Reports
@@ -1695,7 +1727,8 @@ public class DocGen {
 			String directReportData = ""; // copying
 			for (int i = 0; i < parentDirectReportArray.length(); i++) {
 				directReportData = getValueFromPath(childDirectReportsPath, parentDirectReportArray.getJSONObject(i),
-						session, forDirectReport, null);// fetching all the direct reports of a direct report
+						session, forDirectReport, null, httpResponse);// fetching all the direct reports of a direct
+																		// report
 				if (directReportData != "") {
 					tempHoldChildDirectReports = new JSONArray(directReportData);
 					for (int j = 0; j < tempHoldChildDirectReports.length(); j++) {
@@ -1718,30 +1751,31 @@ public class DocGen {
 		}
 	}
 
-	String getTemplateName(String ruleID, HttpSession session, Boolean forDirectReport) {
+	String getTemplateName(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) {
 		JSONObject rquestData = new JSONObject((String) session.getAttribute("requestData"));
 		return templateService.findById(rquestData.getString("templateID")).get(0).getName();
 	}
 
-	String getFileType(String ruleID, HttpSession session, Boolean forDirectReport) {
+	String getFileType(String ruleID, HttpSession session, Boolean forDirectReport, HttpServletResponse httpResponse) {
 		JSONObject rquestData = new JSONObject((String) session.getAttribute("requestData"));
 		return rquestData.getString("fileType");
 	}
 
-	String getTemplatesFromAPI(String ruleID, HttpSession session, Boolean forDirectReport)
-			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
-			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
-			NamingException, URISyntaxException, IOException {
+	String getTemplatesFromAPI(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, ClientProtocolException,
+			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException {
 		if ((session.getAttribute("availableTemplatesInAzure") == null && !forDirectReport)
 				|| forDirectReport == true) {
 			List<MapRuleFields> mapRuleField = mapRuleFieldsService.findByRuleID(ruleID);
 			JSONObject requestObj = new JSONObject();
 			requestObj.put(mapRuleField.get(0).getKey(),
-					getFieldValue(mapRuleField.get(0).getField(), session, forDirectReport, null));
+					getFieldValue(mapRuleField.get(0).getField(), session, forDirectReport, null, httpResponse));
 			requestObj.put(mapRuleField.get(1).getKey(),
-					getFieldValue(mapRuleField.get(1).getField(), session, forDirectReport, null));
+					getFieldValue(mapRuleField.get(1).getField(), session, forDirectReport, null, httpResponse));
 			requestObj.put(mapRuleField.get(2).getKey(),
-					getFieldValue(mapRuleField.get(2).getField(), session, forDirectReport, null));
+					getFieldValue(mapRuleField.get(2).getField(), session, forDirectReport, null, httpResponse));
 			CommonFunctions commonFunctions = new CommonFunctions();
 			JSONObject apiResponse = new JSONObject(commonFunctions.callpostAPIWithJWT(mapRuleField.get(3).getUrl(),
 					requestObj, mapRuleField.get(3).getDestinationName()));
@@ -1760,10 +1794,10 @@ public class DocGen {
 		return "";
 	}
 
-	String generateValueByConcatination(String ruleID, HttpSession session, Boolean forDirectReport)
-			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
-			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
-			NamingException, URISyntaxException, IOException {
+	String generateValueByConcatination(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, ClientProtocolException,
+			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException {
 		// Required to concatenate field Values and return single value
 		List<MapRuleFields> mapRuleField = mapRuleFieldsService.findByRuleID(ruleID);
 		Iterator<MapRuleFields> iterator = mapRuleField.iterator();
@@ -1773,11 +1807,11 @@ public class DocGen {
 		while (iterator.hasNext()) {
 			tempMapRuleFields = iterator.next();
 			if (!(tempMapRuleFields.getKey() == null)) {
-				fieldValue = getFieldValue(tempMapRuleFields.getField(), session, forDirectReport, null);
+				fieldValue = getFieldValue(tempMapRuleFields.getField(), session, forDirectReport, null, httpResponse);
 				returnString = fieldValue.equals("") ? returnString
 						: returnString + fieldValue + tempMapRuleFields.getKey();
 			} else {
-				fieldValue = getFieldValue(tempMapRuleFields.getField(), session, forDirectReport, null);
+				fieldValue = getFieldValue(tempMapRuleFields.getField(), session, forDirectReport, null, httpResponse);
 				returnString = fieldValue.equals("") ? returnString : returnString + fieldValue;
 			}
 		}
@@ -1785,15 +1819,16 @@ public class DocGen {
 		return returnString;
 	}
 
-	String formatDate(String ruleID, HttpSession session, Boolean forDirectReport)
+	String formatDate(String ruleID, HttpSession session, Boolean forDirectReport, HttpServletResponse httpResponse)
 			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
 			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
 			NamingException, URISyntaxException, IOException {
 		// Required to format dates
 
 		List<MapRuleFields> mapRuleField = mapRuleFieldsService.findByRuleID(ruleID);
-		String language = getFieldValue(mapRuleField.get(0).getField(), session, forDirectReport, null);
-		String dateToFormat = getFieldValue(mapRuleField.get(1).getField(), session, forDirectReport, null);
+		String language = getFieldValue(mapRuleField.get(0).getField(), session, forDirectReport, null, httpResponse);
+		String dateToFormat = getFieldValue(mapRuleField.get(1).getField(), session, forDirectReport, null,
+				httpResponse);
 		if (dateToFormat.equals("")) // return if value returned is ""
 			return "";
 		dateToFormat = dateToFormat.substring(dateToFormat.indexOf("(") + 1, dateToFormat.indexOf(")"));
@@ -1827,47 +1862,48 @@ public class DocGen {
 		}
 	}
 
-	String checkForGreaterThen(String ruleID, HttpSession session, Boolean forDirectReport)
-			throws NumberFormatException, BatchException, ClientProtocolException, UnsupportedOperationException,
-			NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException,
-			InvocationTargetException, NamingException, URISyntaxException, IOException {
+	String checkForGreaterThen(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws NumberFormatException, BatchException, ClientProtocolException,
+			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException {
 		// Required to check for Operation and return the result based on The mapped
 		// fields
 		List<MapRuleFields> mapRuleField = mapRuleFieldsService.findByRuleID(ruleID);
 		int greaterThen = Integer
-				.parseInt(getFieldValue(mapRuleField.get(0).getField(), session, forDirectReport, null));
+				.parseInt(getFieldValue(mapRuleField.get(0).getField(), session, forDirectReport, null, httpResponse));
 		int checkInteger = Integer
-				.parseInt(getFieldValue(mapRuleField.get(1).getField(), session, forDirectReport, null));
+				.parseInt(getFieldValue(mapRuleField.get(1).getField(), session, forDirectReport, null, httpResponse));
 
 		if (checkInteger >= greaterThen) {
-			return getFieldValue(mapRuleField.get(2).getField(), session, forDirectReport, null);
+			return getFieldValue(mapRuleField.get(2).getField(), session, forDirectReport, null, httpResponse);
 		} else {
-			return getFieldValue(mapRuleField.get(3).getField(), session, forDirectReport, null);
+			return getFieldValue(mapRuleField.get(3).getField(), session, forDirectReport, null, httpResponse);
 		}
 	}
 
-	String divideBy(String ruleID, HttpSession session, Boolean forDirectReport)
+	String divideBy(String ruleID, HttpSession session, Boolean forDirectReport, HttpServletResponse httpResponse)
 			throws NumberFormatException, BatchException, ClientProtocolException, UnsupportedOperationException,
 			NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException,
 			InvocationTargetException, NamingException, URISyntaxException, IOException {
 		// Required to get the result from operation
 		List<MapRuleFields> mapRuleField = mapRuleFieldsService.findByRuleID(ruleID);
 		int divideBy_devisor = Integer
-				.parseInt(getFieldValue(mapRuleField.get(0).getField(), session, forDirectReport, null));
+				.parseInt(getFieldValue(mapRuleField.get(0).getField(), session, forDirectReport, null, httpResponse));
 		int toBeDivided_dividant = Integer
-				.parseInt(getFieldValue(mapRuleField.get(1).getField(), session, forDirectReport, null));
+				.parseInt(getFieldValue(mapRuleField.get(1).getField(), session, forDirectReport, null, httpResponse));
 
 		return Double.toString(toBeDivided_dividant / divideBy_devisor);
 	}
 
-	String formatYearPlusValue(String ruleID, HttpSession session, Boolean forDirectReport)
-			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
-			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
-			NamingException, URISyntaxException, IOException {
+	String formatYearPlusValue(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, ClientProtocolException,
+			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException {
 		// Required to format date and add one to the year
 		List<MapRuleFields> mapRuleField = mapRuleFieldsService.findByRuleID(ruleID);
-		String language = getFieldValue(mapRuleField.get(0).getField(), session, forDirectReport, null);
-		String dateToFormat = getFieldValue(mapRuleField.get(1).getField(), session, forDirectReport, null);
+		String language = getFieldValue(mapRuleField.get(0).getField(), session, forDirectReport, null, httpResponse);
+		String dateToFormat = getFieldValue(mapRuleField.get(1).getField(), session, forDirectReport, null,
+				httpResponse);
 		dateToFormat = dateToFormat.substring(dateToFormat.indexOf("(") + 1, dateToFormat.indexOf(")"));
 
 		Date date = new Date(Long.parseLong(dateToFormat));
@@ -1885,66 +1921,68 @@ public class DocGen {
 			Calendar cal = Calendar.getInstance();
 			cal.setTime(date);
 			return (Integer.parseInt(sdf_YYYY.format(date))
-					+ Integer.parseInt(getFieldValue(mapRuleField.get(2).getField(), session, forDirectReport, null))
+					+ Integer.parseInt(
+							getFieldValue(mapRuleField.get(2).getField(), session, forDirectReport, null, httpResponse))
 					+ seprator1 + hunLocale.values()[11] + seprator2 + 31);
 		case "DEU": // as for DE required format is DD.MM.YYYY and our default is MMMM dd, yyyy
 			locale = new Locale(language);
 			sdf_MMDD = new SimpleDateFormat("dd" + seprator1 + "MM", locale);
-			return (sdf_MMDD.format(decMonth) + seprator2 + (Integer.parseInt(sdf_YYYY.format(date))
-					+ Integer.parseInt(getFieldValue(mapRuleField.get(2).getField(), session, forDirectReport, null))));
+			return (sdf_MMDD.format(decMonth) + seprator2 + (Integer.parseInt(sdf_YYYY.format(date)) + Integer.parseInt(
+					getFieldValue(mapRuleField.get(2).getField(), session, forDirectReport, null, httpResponse))));
 		default:
 			// works with default languages like: fr, en, sv, es, etc
 			locale = new Locale(language);
 			sdf_MMDD = new SimpleDateFormat("MMMM" + seprator1 + "dd", locale);
-			return (sdf_MMDD.format(decMonth) + seprator2 + (Integer.parseInt(sdf_YYYY.format(date))
-					+ Integer.parseInt(getFieldValue(mapRuleField.get(2).getField(), session, forDirectReport, null))));
+			return (sdf_MMDD.format(decMonth) + seprator2 + (Integer.parseInt(sdf_YYYY.format(date)) + Integer.parseInt(
+					getFieldValue(mapRuleField.get(2).getField(), session, forDirectReport, null, httpResponse))));
 		}
 	}
 
-	String fetchPickListValue(String ruleID, HttpSession session, Boolean forDirectReport)
-			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
-			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
-			NamingException, URISyntaxException, IOException {
+	String fetchPickListValue(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, ClientProtocolException,
+			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException {
 		// rule required to fetch value for a pick-list field
-		String url = createPicklistURL(ruleID, session, forDirectReport);
+		String url = createPicklistURL(ruleID, session, forDirectReport, httpResponse);
 		logger.debug("Picklist Fetch URL: " + url);
 		MapRuleFields mapRuleField = mapRuleFieldsService.findByRuleID(ruleID).get(0);
 		JSONArray picklistData = new JSONObject(callSFSingle(mapRuleField.getKey(), url)).getJSONArray("results");
 		// logger.debug("Picklist Fetched Data: " + picklistData);
 		return picklistData.length() > 0
 				? getValueFromPath(mapRuleField.getValueFromPath(), picklistData.getJSONObject(0), session,
-						forDirectReport, null)
+						forDirectReport, null, httpResponse)
 				: "";
 	}
 
-	String getCodelistValue(String ruleID, HttpSession session, Boolean forDirectReport)
-			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
-			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
-			NamingException, URISyntaxException, IOException {
+	String getCodelistValue(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, ClientProtocolException,
+			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException {
 		// rule required to fetch code-list value from DB
 		List<MapRuleFields> mapRuleFields = mapRuleFieldsService.findByRuleID(ruleID);
-		String CodelistSFKey = getFieldValue(mapRuleFields.get(0).getField(), session, forDirectReport, null);// SF_key
-																												// of
-																												// Code-list
+		String CodelistSFKey = getFieldValue(mapRuleFields.get(0).getField(), session, forDirectReport, null,
+				httpResponse);// SF_key
+		// of
+		// Code-list
 		if (CodelistSFKey.equals(""))
 			return "";
 		String codeListID = codelistService.findByFieldAndKey(mapRuleFields.get(0).getFieldID(), CodelistSFKey).get(0)
 				.getId();
-		String language = getFieldValue(mapRuleFields.get(1).getField(), session, forDirectReport, null);
+		String language = getFieldValue(mapRuleFields.get(1).getField(), session, forDirectReport, null, httpResponse);
 		if (language.equals(""))
 			return "";
 		List<CodelistText> codelistText = codelistTextService.findByCodelistLanguage(codeListID, language);
 		return codelistText.size() > 0 ? codelistText.get(0).getValue() : "";
 	}
 
-	String performOperation(String ruleID, HttpSession session, Boolean forDirectReport)
-			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
-			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
-			NamingException, URISyntaxException, IOException {
+	String performOperation(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, ClientProtocolException,
+			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException {
 		// rule required to perform operation on two fields
 		List<MapRuleFields> mapRuleField = mapRuleFieldsService.findByRuleID(ruleID);
-		String operand1 = getFieldValue(mapRuleField.get(0).getField(), session, forDirectReport, null);
-		String operand2 = getFieldValue(mapRuleField.get(1).getField(), session, forDirectReport, null);
+		String operand1 = getFieldValue(mapRuleField.get(0).getField(), session, forDirectReport, null, httpResponse);
+		String operand2 = getFieldValue(mapRuleField.get(1).getField(), session, forDirectReport, null, httpResponse);
 		String operator = mapRuleField.get(1).getKey();
 		switch (operator) {
 		case "+":
@@ -1960,15 +1998,17 @@ public class DocGen {
 		}
 	}
 
-	String convertDigitsToWords(String ruleID, HttpSession session, Boolean forDirectReport)
-			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
-			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
-			NamingException, URISyntaxException, IOException {
+	String convertDigitsToWords(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, ClientProtocolException,
+			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException {
 		// rule required to convert digits to words
 
 		List<MapRuleFields> mapRuleFields = mapRuleFieldsService.findByRuleID(ruleID);
-		String digitsToConvert = getFieldValue(mapRuleFields.get(0).getField(), session, forDirectReport, null);
-		String countryToConvertIn = getFieldValue(mapRuleFields.get(1).getField(), session, forDirectReport, null);
+		String digitsToConvert = getFieldValue(mapRuleFields.get(0).getField(), session, forDirectReport, null,
+				httpResponse);
+		String countryToConvertIn = getFieldValue(mapRuleFields.get(1).getField(), session, forDirectReport, null,
+				httpResponse);
 		logger.debug("Country in which text to be converted: " + countryToConvertIn);
 		if (!(digitsToConvert.length() > 0)) // Check if value is blank, return ""
 			return "";
@@ -1986,10 +2026,10 @@ public class DocGen {
 	/*
 	 *** POST Rules Start***
 	 */
-	String getGroupsOfDirectReport(String ruleID, HttpSession session, Boolean forDirectReport)
-			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
-			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
-			NamingException, URISyntaxException, IOException {
+	String getGroupsOfDirectReport(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, ClientProtocolException,
+			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException {
 		// Rule in DB to get groups of a direct report
 
 		JSONObject requestData = new JSONObject((String) session.getAttribute("requestData"));
@@ -1998,7 +2038,8 @@ public class DocGen {
 		 *** Security Check *** Checking if loggedIn user is a manager
 		 *
 		 */
-		Boolean isManager = Boolean.parseBoolean(getFieldValue(mapRuleField.get(0).getField(), session, false, null));
+		Boolean isManager = Boolean
+				.parseBoolean(getFieldValue(mapRuleField.get(0).getField(), session, false, null, httpResponse));
 		if (!isManager) {
 			logger.error("Unauthorized access! User: " + (String) session.getAttribute("loggedInUser")
 					+ " who is not a manager, Tried accessing groups of user: " + requestData.getString("userID"));
@@ -2010,7 +2051,7 @@ public class DocGen {
 		 * report of the loggenIn user
 		 */
 		Boolean isDirectReport = Boolean
-				.parseBoolean(getFieldValue(mapRuleField.get(1).getField(), session, false, null));
+				.parseBoolean(getFieldValue(mapRuleField.get(1).getField(), session, false, null, httpResponse));
 
 		if (!isDirectReport) {
 			logger.error("Unauthorized access! User: " + (String) session.getAttribute("loggedInUser")
@@ -2018,8 +2059,10 @@ public class DocGen {
 					+ ", which is not its direct report or level 2");// userID passed from UI
 			return "You are not authorized to access this data! This event has been logged!";
 		}
-		String countryID = getFieldValue(mapRuleField.get(2).getField(), session, true, null);// forDirectReport true
-		String companyID = getFieldValue(mapRuleField.get(3).getField(), session, true, null);// forDirectReport true
+		String countryID = getFieldValue(mapRuleField.get(2).getField(), session, true, null, httpResponse);// forDirectReport
+																											// true
+		String companyID = getFieldValue(mapRuleField.get(3).getField(), session, true, null, httpResponse);// forDirectReport
+																											// true
 		Iterator<MapCountryCompanyGroup> iterator = mapCountryCompanyGroupService
 				.findByCountryCompany(countryID, companyID, true).iterator(); // Retrieving MapCountryCompanyGroup based
 																				// on CountryID CompanyID and Manager
@@ -2069,7 +2112,7 @@ public class DocGen {
 		return response.toString();
 	}
 
-	String getTemplates(String ruleID, HttpSession session, Boolean forDirectReport)
+	String getTemplates(String ruleID, HttpSession session, Boolean forDirectReport, HttpServletResponse httpResponse)
 			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
 			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
 			NamingException, URISyntaxException, IOException {
@@ -2080,8 +2123,9 @@ public class DocGen {
 		 *** Security Check *** Checking if groupID passed from UI is actually available
 		 * for the loggerIn user
 		 */
-		JSONObject ruleData = getRuleData(ruleID, session, false); // forDirectReport false as this rule is for the
-																	// loggedIn user
+		JSONObject ruleData = getRuleData(ruleID, session, false, httpResponse); // forDirectReport false as this rule
+																					// is for the
+		// loggedIn user
 		List<MapRuleFields> mapRuleField = mapRuleFieldsService.findByRuleID(ruleID);
 		String countryID = ruleData.getString(mapRuleField.get(0).getField().getTechnicalName());
 		String companyID = ruleData.getString(mapRuleField.get(1).getField().getTechnicalName());
@@ -2101,10 +2145,13 @@ public class DocGen {
 						+ groupID);
 				return "You are not authorized to access this data! This event has been logged!";
 			}
-			// get available Templates in Azure from Session
-			@SuppressWarnings("unchecked")
-			Map<String, JSONObject> templatesAvailableInAzure = (Map<String, JSONObject>) session
-					.getAttribute("availableTemplatesInAzure");
+			/*
+			 * // get available Templates in Azure from Session
+			 * 
+			 * @SuppressWarnings("unchecked") Map<String, JSONObject>
+			 * templatesAvailableInAzure = (Map<String, JSONObject>) session
+			 * .getAttribute("availableTemplatesInAzure");
+			 */
 			List<MapGroupTemplates> mapGroupTemplate = mapGroupTemplateService.findByGroupID(groupID);
 			// Now Iterating for each template assigned to the provided group
 			Iterator<MapGroupTemplates> iterator = mapGroupTemplate.iterator();
@@ -2131,14 +2178,14 @@ public class DocGen {
 				// Generating criteria for each template to check if its valid for the loggedIn
 				// user
 				templateID = tempMapGroupTemplate.getTemplateID();
-				criteriaSatisfied = checkCriteria(templateID, session, false); // forDirectReport false
+				criteriaSatisfied = checkCriteria(templateID, session, false, httpResponse); // forDirectReport false
 				if (criteriaSatisfied) {
-					// check if the template is available in Azure
-					if (!templatesAvailableInAzure.containsKey(tempMapGroupTemplate.getTemplate().getName())) {
-						tempTemplateObj.put("availableInAzure", false);
-						tempResponse.put(tempTemplateObj);
-						continue;
-					}
+					/*
+					 * // check if the template is available in Azure if
+					 * (!templatesAvailableInAzure.containsKey(tempMapGroupTemplate.getTemplate().
+					 * getName())) { tempTemplateObj.put("availableInAzure", false);
+					 * tempResponse.put(tempTemplateObj); continue; }
+					 */
 					tempResponse.put(tempTemplateObj);
 				}
 			}
@@ -2147,10 +2194,10 @@ public class DocGen {
 		return response.toString();
 	}
 
-	String getTemplatesOfDirectReports(String ruleID, HttpSession session, Boolean forDirectReport)
-			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
-			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
-			NamingException, URISyntaxException, IOException {
+	String getTemplatesOfDirectReports(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, ClientProtocolException,
+			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException {
 		// Rule in DB to get templates of a direct report from loggerIn Manager User
 		// (Not Admin User)
 
@@ -2161,7 +2208,8 @@ public class DocGen {
 		 *** Security Check *** Checking if loggedIn user is a manager
 		 *
 		 */
-		Boolean isManager = Boolean.parseBoolean(getFieldValue(mapRuleField.get(0).getField(), session, false, null));
+		Boolean isManager = Boolean
+				.parseBoolean(getFieldValue(mapRuleField.get(0).getField(), session, false, null, httpResponse));
 		String loggerInUser = (String) session.getAttribute("loggedInUser");
 		if (!isManager) {
 			logger.error("Unauthorized access! User: " + loggerInUser
@@ -2174,7 +2222,7 @@ public class DocGen {
 		 * report of the loggenIn user
 		 */
 		Boolean isDirectReport = Boolean
-				.parseBoolean(getFieldValue(mapRuleField.get(1).getField(), session, false, null));
+				.parseBoolean(getFieldValue(mapRuleField.get(1).getField(), session, false, null, httpResponse));
 
 		if (!isDirectReport) {
 			logger.error("Unauthorized access! User: " + loggerInUser + " Tried accessing templates of a user: "
@@ -2183,11 +2231,12 @@ public class DocGen {
 			return "You are not authorized to access this data! This event has been logged!";
 		}
 
-		String directReportCountryID = getFieldValue(mapRuleField.get(2).getField(), session, true, null);// forDirectReport
-																											// true
-		String directReportCompanyID = getFieldValue(mapRuleField.get(3).getField(), session, true, null);// forDirectReport
-																											// true
-		getFieldValue(mapRuleField.get(4).getField(), session, true, null);// forDirectReport true
+		String directReportCountryID = getFieldValue(mapRuleField.get(2).getField(), session, true, null, httpResponse);// forDirectReport
+		// true
+		String directReportCompanyID = getFieldValue(mapRuleField.get(3).getField(), session, true, null, httpResponse);// forDirectReport
+		// true
+		// getFieldValue(mapRuleField.get(4).getField(), session, true, null,
+		// httpResponse);// forDirectReport true
 
 		/*
 		 *** Security Check *** Checking if groupID passed from UI is actually available
@@ -2210,10 +2259,13 @@ public class DocGen {
 				return "You are not authorized to access this data! This event has been logged!";
 			}
 
-			// get available Templates in Azure from Session
-			@SuppressWarnings("unchecked")
-			Map<String, JSONObject> templatesAvailableInAzure = (Map<String, JSONObject>) session
-					.getAttribute("availableTemplatesForDirectReport");
+			/*
+			 * // get available Templates in Azure from Session
+			 * 
+			 * @SuppressWarnings("unchecked") Map<String, JSONObject>
+			 * templatesAvailableInAzure = (Map<String, JSONObject>) session
+			 * .getAttribute("availableTemplatesForDirectReport");
+			 */
 
 			// Now getting templates those are available for the userID provided from UI
 			List<MapGroupTemplates> mapGroupTemplate = mapGroupTemplateService.findByGroupID(groupID);
@@ -2242,14 +2294,15 @@ public class DocGen {
 				// Generating criteria for each template to check if its valid for the loggedIn
 				// user
 				templateID = tempMapGroupTemplate.getTemplateID();
-				criteriaSatisfied = checkCriteria(templateID, session, true); // forDirectReport true
+				criteriaSatisfied = checkCriteria(templateID, session, true, httpResponse); // forDirectReport true
 				if (criteriaSatisfied) {
 					// check if the template is available in Azure
-					if (!templatesAvailableInAzure.containsKey(tempMapGroupTemplate.getTemplate().getName())) {
-						tempTemplateObj.put("availableInAzure", false);
-						tempResponse.put(tempTemplateObj);
-						continue;
-					}
+					/*
+					 * if
+					 * (!templatesAvailableInAzure.containsKey(tempMapGroupTemplate.getTemplate().
+					 * getName())) { tempTemplateObj.put("availableInAzure", false);
+					 * tempResponse.put(tempTemplateObj); continue; }
+					 */
 					tempResponse.put(tempTemplateObj);
 				}
 			}
@@ -2258,21 +2311,22 @@ public class DocGen {
 		return response.toString();
 	}
 
-	String docDownload(String ruleID, HttpSession session, Boolean forDirectReport)
+	String docDownload(String ruleID, HttpSession session, Boolean forDirectReport, HttpServletResponse httpResponse)
 			throws BatchException, JSONException, ClientProtocolException, UnsupportedOperationException,
 			NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException,
-			InvocationTargetException, NamingException, URISyntaxException, IOException {
+			InvocationTargetException, NamingException, URISyntaxException, IOException, XmlException {
 		// Rule in DB to download doc
 
 		JSONObject requestData = new JSONObject((String) session.getAttribute("requestData"));
 		String loggerInUser = (String) session.getAttribute("loggedInUser");
 		String templateID = requestData.getString("templateID");
+		Boolean inPDF = requestData.getBoolean("inPDF");
 
 		/*
 		 *** Security Check *** Checking if templateID passed from UI is actually
 		 * available for the loggedIn user
 		 */
-		if (!templateAvailableCheck(ruleID, session, false)) { // for DirectReport false
+		if (!templateAvailableCheck(ruleID, session, false, httpResponse)) { // for DirectReport false
 			logger.error("Unauthorized access! User: " + loggerInUser
 					+ " Tried downloading document of a template that is not assigned for this user, templateID: "
 					+ templateID);
@@ -2286,24 +2340,27 @@ public class DocGen {
 			session.removeAttribute(entityNamesItr.next());
 		}
 		// Now Generating Object to POST
-		JSONObject docRequestObject = getDocPostObject(templateID, session, false); // for direct report false
+		JSONObject docRequestObject = getDocTagsObject(templateID, session, false, httpResponse); // for direct report
+																									// false
 		logger.debug("Doc Generation Request Obj: " + docRequestObject.toString());
-		return getDocFromAPI(docRequestObject);
+		return generateDoc(docRequestObject, templateID, inPDF, httpResponse);
 	}
 
-	String docDownloadDirectReport(String ruleID, HttpSession session, Boolean forDirectReport)
+	String docDownloadDirectReport(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse)
 			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
 			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
-			NamingException, URISyntaxException, IOException {
+			NamingException, URISyntaxException, IOException, XmlException {
 		// Rule in DB to download doc of Direct report
 
 		JSONObject requestData = new JSONObject((String) session.getAttribute("requestData"));
 		List<MapRuleFields> mapRuleField = mapRuleFieldsService.findByRuleID(ruleID);
-		Boolean isManager = Boolean.parseBoolean(getFieldValue(mapRuleField.get(3).getField(), session, false, null));
+		Boolean isManager = Boolean
+				.parseBoolean(getFieldValue(mapRuleField.get(3).getField(), session, false, null, httpResponse));
 		String loggerInUser = (String) session.getAttribute("loggedInUser");
 		String userID = requestData.getString("userID");
 		String templateID = requestData.getString("templateID");
-
+		Boolean inPDF = requestData.getBoolean("inPDF");
 		/*
 		 *** Security Check *** Checking if loggedIn user is a manager
 		 *
@@ -2319,8 +2376,9 @@ public class DocGen {
 		 * report of the loggenIn user
 		 */
 		Boolean isDirectReport = Boolean
-				.parseBoolean(getFieldValue(mapRuleField.get(2).getField(), session, false, null)); // For directReport
-																									// false
+				.parseBoolean(getFieldValue(mapRuleField.get(2).getField(), session, false, null, httpResponse)); // For
+																													// directReport
+		// false
 
 		if (!isDirectReport) {
 			logger.error("Unauthorized access! User: " + loggerInUser + " Tried downloading doc of a user: " + userID
@@ -2332,7 +2390,7 @@ public class DocGen {
 		 *** Security Check *** Checking if templateID passed from UI is actually
 		 * available for the userID provided
 		 */
-		if (!templateAvailableCheck(ruleID, session, true)) {// for direct Report true
+		if (!templateAvailableCheck(ruleID, session, true, httpResponse)) {// for direct Report true
 			logger.error("Unauthorized access! User: " + loggerInUser + " Tried downloading doc of the user: " + userID
 					+ " and template: " + templateID + " which is not assigned for this user");
 			return "You are not authorized to access this data! This event has been logged!";
@@ -2346,9 +2404,10 @@ public class DocGen {
 			session.removeAttribute("directReportEntities-" + requestData.getString("userID") + entityNamesItr.next());
 		}
 		// Now Generating Object to POST
-		JSONObject docRequestObject = getDocPostObject(templateID, session, true);// for direct Report true
+		JSONObject docRequestObject = getDocTagsObject(templateID, session, true, httpResponse);// for direct Report
+																								// true
 		logger.debug("Doc Generation Request Obj: " + docRequestObject.toString());
-		return getDocFromAPI(docRequestObject);
+		return generateDoc(docRequestObject, templateID, inPDF, httpResponse);
 	}
 	/*
 	 *** POST Rules END***
@@ -2357,10 +2416,10 @@ public class DocGen {
 	/*
 	 *** Helper functions Start***
 	 */
-	private Boolean checkCriteria(String templateID, HttpSession session, Boolean forDirectReport)
-			throws NamingException, BatchException, ClientProtocolException, UnsupportedOperationException,
-			URISyntaxException, IOException, NoSuchMethodException, SecurityException, IllegalAccessException,
-			IllegalArgumentException, InvocationTargetException {
+	private Boolean checkCriteria(String templateID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws NamingException, BatchException, ClientProtocolException,
+			UnsupportedOperationException, URISyntaxException, IOException, NoSuchMethodException, SecurityException,
+			IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		// This function is required to check if the provided criteria is valid for a
 		// user or not
 		List<MapTemplateCriteriaValues> mapTemplateCriteriaValues = mapTemplateCriteriaValuesService
@@ -2375,32 +2434,32 @@ public class DocGen {
 			switch (tempMapTemplateCriteriaValues.getOperator().getSign()) {
 
 			case "==":
-				if (!getFieldValue(tempMapTemplateCriteriaValues.getField(), session, forDirectReport, null)
-						.equals(tempMapTemplateCriteriaValues.getValue()))
+				if (!getFieldValue(tempMapTemplateCriteriaValues.getField(), session, forDirectReport, null,
+						httpResponse).equals(tempMapTemplateCriteriaValues.getValue()))
 					return false;
 				break;
 
 			case ">":
 				if (!(Integer.parseInt(getFieldValue(tempMapTemplateCriteriaValues.getField(), session, forDirectReport,
-						null)) > Integer.parseInt(tempMapTemplateCriteriaValues.getValue())))
+						null, httpResponse)) > Integer.parseInt(tempMapTemplateCriteriaValues.getValue())))
 					return false;
 				break;
 
 			case "<":
 				if (!(Integer.parseInt(getFieldValue(tempMapTemplateCriteriaValues.getField(), session, forDirectReport,
-						null)) < Integer.parseInt(tempMapTemplateCriteriaValues.getValue())))
+						null, httpResponse)) < Integer.parseInt(tempMapTemplateCriteriaValues.getValue())))
 					return false;
 				break;
 
 			case ">=":
 				if (!(Integer.parseInt(getFieldValue(tempMapTemplateCriteriaValues.getField(), session, forDirectReport,
-						null)) >= Integer.parseInt(tempMapTemplateCriteriaValues.getValue())))
+						null, httpResponse)) >= Integer.parseInt(tempMapTemplateCriteriaValues.getValue())))
 					return false;
 				break;
 
 			case "<=":
 				if (!(Integer.parseInt(getFieldValue(tempMapTemplateCriteriaValues.getField(), session, forDirectReport,
-						null)) <= Integer.parseInt(tempMapTemplateCriteriaValues.getValue())))
+						null, httpResponse)) <= Integer.parseInt(tempMapTemplateCriteriaValues.getValue())))
 					return false;
 				break;
 
@@ -2412,10 +2471,10 @@ public class DocGen {
 		return true;
 	}
 
-	private String getFieldValue(Fields field, HttpSession session, Boolean forDirectReport, String fieldBasedOnCountry)
-			throws BatchException, ClientProtocolException, UnsupportedOperationException, NamingException,
-			URISyntaxException, IOException, NoSuchMethodException, SecurityException, IllegalAccessException,
-			IllegalArgumentException, InvocationTargetException {
+	private String getFieldValue(Fields field, HttpSession session, Boolean forDirectReport, String fieldBasedOnCountry,
+			HttpServletResponse httpResponse) throws BatchException, ClientProtocolException,
+			UnsupportedOperationException, NamingException, URISyntaxException, IOException, NoSuchMethodException,
+			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 
 		logger.debug("Getting value for Field: " + field.getTechnicalName() + "  ::: RuleID: " + field.getRuleID()
 				+ " ::: forDirectReport: " + forDirectReport);
@@ -2434,15 +2493,15 @@ public class DocGen {
 			// now entity variable will be having the root entity from which will get the
 			// data of our field
 			entityData = getEntityData(entity, session, forDirectReport);
-			return getValueFromPath(field.getValueFromPath(), entityData, session, forDirectReport,
-					fieldBasedOnCountry);
+			return getValueFromPath(field.getValueFromPath(), entityData, session, forDirectReport, fieldBasedOnCountry,
+					httpResponse);
 		}
 
 		// Calling function dynamically
 		// more Info here: https://www.baeldung.com/java-method-reflection
 		Method method = this.getClass().getDeclaredMethod(field.getRule().getName(), String.class, HttpSession.class,
-				Boolean.class);
-		return (String) method.invoke(this, field.getRuleID(), session, forDirectReport);
+				Boolean.class, HttpServletResponse.class);
+		return (String) method.invoke(this, field.getRuleID(), session, forDirectReport, httpResponse);
 	}
 
 	private Entities checkForDependantEntity(Entities entity) { // function to get the root entity
@@ -2650,7 +2709,7 @@ public class DocGen {
 	}
 
 	private String getValueFromPath(String path, JSONObject retriveFromObj, HttpSession session,
-			Boolean forDirectReport, String basedOnCountry)
+			Boolean forDirectReport, String basedOnCountry, HttpServletResponse httpResponse)
 			throws JSONException, BatchException, ClientProtocolException, UnsupportedOperationException,
 			NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException,
 			InvocationTargetException, NamingException, URISyntaxException, IOException {
@@ -2697,13 +2756,13 @@ public class DocGen {
 																		// coming from Table
 						fieldID = key.substring(key.indexOf("~TABLE_SF_DATA~") + 15, key.indexOf('['));
 						valueToSearch = getFieldValue(fieldsService.findByID(fieldID).get(0), session, forDirectReport,
-								null);
+								null, httpResponse);
 						valueToSearch = sFDataMappingService.findByKey(valueToSearch).size() > 0
 								? sFDataMappingService.findByKey(valueToSearch).get(0).getData()
 								: "";
 					} else // else Value to search will come from a field
 						valueToSearch = getFieldValue(fieldsService.findByID(fieldID).get(0), session, forDirectReport,
-								null);
+								null, httpResponse);
 					// logger.debug("valueToSearch: " + valueToSearch);
 					JSONObject tempJsonObj;
 					for (int i = 0; i < tempArray.length(); i++) { // now Iterating each object in the array till a
@@ -2729,10 +2788,10 @@ public class DocGen {
 		return value;
 	}
 
-	private JSONObject getRuleData(String ruleID, HttpSession session, Boolean forDirectReport)
-			throws BatchException, ClientProtocolException, UnsupportedOperationException, NamingException,
-			URISyntaxException, IOException, NoSuchMethodException, SecurityException, IllegalAccessException,
-			IllegalArgumentException, InvocationTargetException {
+	private JSONObject getRuleData(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, ClientProtocolException,
+			UnsupportedOperationException, NamingException, URISyntaxException, IOException, NoSuchMethodException,
+			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		// This function will create jsonObject for a particular rule
 		List<MapRuleFields> mapRuleFields = mapRuleFieldsService.findByRuleID(ruleID);
 		MapRuleFields mapRuleField;
@@ -2742,7 +2801,8 @@ public class DocGen {
 		while (iterator.hasNext()) {
 			mapRuleField = iterator.next();
 			field = mapRuleField.getField();
-			responseObj.put(field.getTechnicalName(), getFieldValue(field, session, forDirectReport, null));
+			responseObj.put(field.getTechnicalName(),
+					getFieldValue(field, session, forDirectReport, null, httpResponse));
 		}
 		return responseObj;
 	}
@@ -2771,15 +2831,15 @@ public class DocGen {
 		return response;
 	}
 
-	private Boolean templateAvailableCheck(String ruleID, HttpSession session, Boolean forDirectReport)
-			throws BatchException, JSONException, ClientProtocolException, UnsupportedOperationException,
-			NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException,
-			InvocationTargetException, NamingException, URISyntaxException, IOException {
+	private Boolean templateAvailableCheck(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, JSONException, ClientProtocolException,
+			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException {
 		List<MapRuleFields> mapRuleField = mapRuleFieldsService.findByRuleID(ruleID);
 		JSONObject requestData = new JSONObject((String) session.getAttribute("requestData"));
 		JSONArray availableTemplates;
 		JSONArray availableGroups = new JSONArray(
-				getFieldValue(mapRuleField.get(0).getField(), session, forDirectReport, null));
+				getFieldValue(mapRuleField.get(0).getField(), session, forDirectReport, null, httpResponse));
 		logger.debug("Available Groups:" + availableGroups.toString() + " ::: forDirectReport" + forDirectReport);
 		String groupID;
 		JSONObject tempAvailableTemplatesObj;
@@ -2791,7 +2851,7 @@ public class DocGen {
 			session.setAttribute("requestData", requestData.toString()); // Saving groups in session as its required in
 																			// checkAvailable Templates Function
 			tempAvailableTemplatesObj = new JSONObject(
-					getFieldValue(mapRuleField.get(1).getField(), session, forDirectReport, null));
+					getFieldValue(mapRuleField.get(1).getField(), session, forDirectReport, null, httpResponse));
 			availableTemplates = tempAvailableTemplatesObj.getJSONArray(groupID);
 			logger.debug(
 					"Available templates:" + availableTemplates.toString() + " ::: forDirectReport" + forDirectReport);
@@ -2804,10 +2864,47 @@ public class DocGen {
 		return false;
 	}
 
-	private JSONObject getDocPostObject(String templateID, HttpSession session, Boolean forDirectReport)
-			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
-			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
-			NamingException, URISyntaxException, IOException {
+	private JSONObject getDocTagsObject(String templateID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, ClientProtocolException,
+			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException {
+		// Function to generate Tags Object for a Template, so it can be used to replace
+		// tags in the Doc
+
+		JSONArray tagsArray = new JSONArray();
+		MapTemplateFields mapTemplateField;
+		Iterator<MapTemplateFields> iterator = mapTemplateFieldsService.findByTemplateID(templateID).iterator();
+		JSONArray templateFieldTagBasedOnCountryArr = new JSONArray(); // array to hold
+																		// tempTemplateFieldTagBasedOnCountry
+		String fieldType = null;
+		JSONObject objToPlace;
+		String value;
+		while (iterator.hasNext()) {
+			mapTemplateField = iterator.next();
+			fieldType = mapTemplateField.getTemplateFiledTag().getType();
+			if (fieldType != null) {
+				templateFieldTagBasedOnCountryArr.put(mapTemplateField.getTemplateFiledTag());
+				continue; // continue the loop
+			}
+			objToPlace = new JSONObject();
+			objToPlace.put("tag", mapTemplateField.getTemplateFiledTag().getId());
+			value = getFieldValue(mapTemplateField.getTemplateFiledTag().getField(), session, forDirectReport, null,
+					httpResponse);
+			objToPlace.put("value", value);
+			tagsArray.put(objToPlace);
+		}
+		processCountrySpecificFields(tagsArray, templateFieldTagBasedOnCountryArr, session, forDirectReport,
+				httpResponse);
+		JSONObject tagsObject = new JSONObject();
+		tagsObject.put("tagsArray", tagsArray);
+		logger.debug("Doc generation Post Obj:: " + tagsObject.toString());
+		return tagsObject;
+	}
+
+	private JSONObject getDocPostObject(String templateID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, ClientProtocolException,
+			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException {
 		// Function to generate POST object for DocGeneration
 
 		JSONObject docPostObject = new JSONObject();
@@ -2829,7 +2926,8 @@ public class DocGen {
 			}
 			objToPlace = new JSONObject();
 			objToPlace.put("Key", mapTemplateField.getTemplateFiledTag().getId());
-			value = getFieldValue(mapTemplateField.getTemplateFiledTag().getField(), session, forDirectReport, null);
+			value = getFieldValue(mapTemplateField.getTemplateFiledTag().getField(), session, forDirectReport, null,
+					httpResponse);
 			dataType = mapTemplateField.getTemplateFiledTag().getDataType();
 			objToPlace.put("Value", value);
 			// To place value at specific location in POST object
@@ -2837,13 +2935,16 @@ public class DocGen {
 					docPostObject, dataType);
 
 		}
-		processCountrySpecificFields(docPostObject, templateFieldTagBasedOnCountryArr, session, forDirectReport);
+		/*
+		 * commented as not to be using now processCountrySpecificFields(docPostObject,
+		 * templateFieldTagBasedOnCountryArr, session, forDirectReport);
+		 */
 		logger.debug("Doc generation Post Obj:: " + docPostObject.toString());
 		return docPostObject;
 	}
 
-	private JSONObject processCountrySpecificFields(JSONObject docPostObject,
-			JSONArray templateFieldTagBasedOnCountryArr, HttpSession session, Boolean forDirectReport)
+	private JSONArray processCountrySpecificFields(JSONArray tagsArray, JSONArray templateFieldTagBasedOnCountryArr,
+			HttpSession session, Boolean forDirectReport, HttpServletResponse httpResponse)
 			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
 			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
 			NamingException, URISyntaxException, IOException {
@@ -2863,26 +2964,25 @@ public class DocGen {
 			TemplateFieldTag tempTemplateFieldTag = (TemplateFieldTag) templateFieldTagBasedOnCountryArr.get(i);
 			String country = getFieldValue(mapRuleFieldsService
 					.findByRuleID(rulesService.findByRuleName("processCountrySpecificFields").get(0).getId()).get(0)
-					.getField(), session, forDirectReport, tempTemplateFieldTag.getType());
+					.getField(), session, forDirectReport, tempTemplateFieldTag.getType(), httpResponse);
 
 			countrySpecificFieldsItr = countrySpecificFieldsService
 					.findByTypeAndCountry(tempTemplateFieldTag.getType(), country).iterator();
 			int counter = 1;
 			while (countrySpecificFieldsItr.hasNext()) {
 				fieldValue = getFieldValue(countrySpecificFieldsItr.next().getField(), session, forDirectReport,
-						tempTemplateFieldTag.getType());
+						tempTemplateFieldTag.getType(), httpResponse);
 				logger.debug("fieldValue::: " + fieldValue);
 				if (fieldValue.equals("")) // Continue if "" and move to next field mapped to the type if any ;D
 					continue;
 				// else add the value to the post object
 				objToPlace = new JSONObject();
-				objToPlace.put("Key", tempTemplateFieldTag.getId() + 0 + counter++);
-				objToPlace.put("Value", fieldValue);
-				docPostObject = placeValue(objToPlace, tempTemplateFieldTag.getPlaceFieldAtPath(), docPostObject,
-						tempTemplateFieldTag.getDataType());
+				objToPlace.put("tag", tempTemplateFieldTag.getId() + 0 + counter++);
+				objToPlace.put("value", fieldValue);
+				tagsArray.put(objToPlace);
 			}
 		}
-		return docPostObject;
+		return tagsArray;
 	}
 
 	private JSONObject placeValue(JSONObject objToPlace, String placeAtPath, JSONObject placeAt, String dataType) {
@@ -2917,6 +3017,53 @@ public class DocGen {
 		return placeAt;
 	}
 
+	private String generateDoc(JSONObject tagsObj, String templateId, Boolean inPDF, HttpServletResponse response)
+			throws IOException, XmlException {
+
+		JSONArray requestTagsArray = tagsObj.getJSONArray("tagsArray");
+		DocTemplates docTemplate = docTemplatesService.findById(templateId).get(0);// Template saved in DB
+		InputStream inputStream = new ByteArrayInputStream(docTemplate.getTemplate()); // creating input-stream
+																						// from
+																						// template to create docx
+																						// file
+		XWPFDocument doc = new XWPFDocument(inputStream);
+
+		replaceTags(doc, requestTagsArray); // Replace Tags in the doc
+
+		Random random = new Random(); // to generate a random fileName
+		int randomNumber = random.nextInt(987656554);
+		FileOutputStream fileOutputStream = new FileOutputStream("GeneratedDoc_" + randomNumber); // Temp location
+
+		if (!inPDF) {
+			doc.write(fileOutputStream);// writing the updated Template to FileOutputStream // to save file
+			byte[] encoded = Files.readAllBytes(Paths.get("GeneratedDoc_" + randomNumber)); // reading the file
+																							// generated from
+																							// fileOutputStream
+			InputStream convertedInputStream = new ByteArrayInputStream(encoded);
+			response.setContentType("application/msword");
+			response.addHeader("Content-Disposition", "attachment; filename=" + "GeneratedDoc-" + ".docx"); // format
+																											// is //
+																											// important
+			IOUtils.copy(convertedInputStream, response.getOutputStream());
+		} else {
+			PdfOptions options = PdfOptions.create().fontEncoding("windows-1250");
+			PdfConverter.getInstance().convert(doc, fileOutputStream, options);
+			byte[] encoded = Files.readAllBytes(Paths.get("GeneratedDoc_" + randomNumber)); // reading the file
+																							// generated from
+																							// fileOutputStream
+			InputStream convertedInputStream = new ByteArrayInputStream(encoded);
+			response.setContentType("application/pdf");
+			response.addHeader("Content-Disposition", "attachment; filename=" + "GeneratedDoc-" + ".pdf"); // format
+																											// is
+																											// important
+
+			IOUtils.copy(convertedInputStream, response.getOutputStream());
+		}
+		response.flushBuffer();
+
+		return "Done!";
+	}
+
 	private String getDocFromAPI(JSONObject requestObj)
 			throws URISyntaxException, NamingException, ParseException, IOException {// function to get document from
 																						// doc gen API
@@ -2926,10 +3073,10 @@ public class DocGen {
 		return commonFunctions.callpostAPIWithJWT(mapRuleField.getUrl(), requestObj, mapRuleField.getDestinationName());
 	}
 
-	private String createPicklistURL(String ruleID, HttpSession session, Boolean forDirectReport)
-			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
-			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
-			NamingException, URISyntaxException, IOException {
+	private String createPicklistURL(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, ClientProtocolException,
+			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException {
 		// required to create URL for PickList
 		List<MapRuleFields> mapRuleFields = mapRuleFieldsService.findByRuleID(ruleID);
 		MapRuleFields mapRuleField;
@@ -2940,18 +3087,19 @@ public class DocGen {
 		while (iterator.hasNext()) {
 			mapRuleField = iterator.next();
 			url = url + mapRuleField.getKey() + " eq '"
-					+ getFieldValue(mapRuleField.getField(), session, forDirectReport, null) + "' and ";
+					+ getFieldValue(mapRuleField.getField(), session, forDirectReport, null, httpResponse) + "' and ";
 		}
 		url = url.substring(0, url.length() - 5);
 		return url;
 	}
 
-	private String getLocale(HttpSession session) throws BatchException, ClientProtocolException,
-			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
-			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException {
+	private String getLocale(HttpSession session, HttpServletResponse httpResponse)
+			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
+			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
+			NamingException, URISyntaxException, IOException {
 		String locale = getFieldValue(mapRuleFieldsService
 				.findByRuleID(rulesService.findByRuleName("getLocale").get(0).getId()).get(0).getField(), session,
-				false, null);
+				false, null, httpResponse);
 		return locale;
 	}
 
@@ -3172,8 +3320,11 @@ public class DocGen {
 
 	@PostMapping(value = "/sendFastDocMail")
 	public ResponseEntity<?> sendMail(@RequestParam(name = "templateId") String templateId,
-			@RequestParam(name = "inPDF") Boolean inPDF, @RequestBody String requestData, HttpServletRequest request)
-			throws IOException, NamingException, AddressException, MessagingException {
+			@RequestParam(name = "inPDF") Boolean inPDF, @RequestBody String requestData, HttpServletRequest request,
+			HttpServletResponse httpResponse)
+			throws IOException, NamingException, AddressException, MessagingException, BatchException,
+			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, URISyntaxException, JSONException, XmlException {
 		JSONObject requestObj = new JSONObject(requestData);
 		HttpSession session = request.getSession(false);
 		DestinationClient javaDestClient = CommonFunctions.getDestinationCLient(CommonVariables.GMAIL_ACCOUNT);
@@ -3204,14 +3355,29 @@ public class DocGen {
 		// message.setContent(Base64.getDecoder().decode((String)
 		// session.getAttribute("file")));
 
+		// Removing all the entities data from the session for Hard Reload of data from
+		// SF
+		List<String> distinctEntityNames = entitiesService.getDistinctNames();
+		Iterator<String> entityNamesItr = distinctEntityNames.iterator();
+		while (entityNamesItr.hasNext()) {
+			session.removeAttribute(entityNamesItr.next());
+		}
+		// Now Generating Object to POST
+		JSONObject docRequestObject = getDocTagsObject(templateId, session, false, httpResponse); // for direct report
+																									// false
+
 		DocTemplates docTemplate = docTemplatesService.findById(templateId).get(0);// Template saved in DB
 		InputStream inputStream = new ByteArrayInputStream(docTemplate.getTemplate()); // creating input-stream
 																						// from
 																						// template to create docx
 																						// file
+
 		XWPFDocument doc = new XWPFDocument(inputStream);
 		Random random = new Random(); // to generate a random fileName
 		int randomNumber = random.nextInt(987656554);
+
+		// replacing Tags in template
+		replaceTags(doc, docRequestObject.getJSONArray("tagsArray"));
 
 		File file;
 		if (!inPDF) {
