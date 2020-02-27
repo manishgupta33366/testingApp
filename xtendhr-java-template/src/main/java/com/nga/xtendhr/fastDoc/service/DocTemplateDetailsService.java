@@ -12,4 +12,6 @@ public interface DocTemplateDetailsService {
 	public void delete(DocTemplateDetails item);
 
 	public List<DocTemplateDetails> findAll();
+
+	public List<DocTemplateDetails> findByName(String name);
 }

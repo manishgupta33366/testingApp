@@ -354,17 +354,30 @@ public class DocGen {
 																							// generated from
 																							// fileOutputStream
 
-			DocTemplates docTemplate = new DocTemplates();
-			docTemplate.setId(String.valueOf(randomNumber));
-			docTemplate.setTemplate(encoded);
-			docTemplatesService.create(docTemplate);
+			List<DocTemplateDetails> docTemplateDetailChek = docTemplateDetailsService.findByName(templateName);
+			DocTemplateDetails docTemplateDetail;
+			if (docTemplateDetailChek.size() > 0) {
+				docTemplateDetail = docTemplateDetailChek.get(0);
+				DocTemplates docTemplate = new DocTemplates();
+				docTemplate.setId(docTemplateDetail.getDocTemplateId());
+				docTemplate.setTemplate(encoded);
+				return ResponseEntity.ok().body("Template Updated successfully!!");
+			}
 
-			DocTemplateDetails docTemplateDetail = new DocTemplateDetails();
-			docTemplateDetail.setDocTemplateId(String.valueOf(randomNumber));
-			docTemplateDetail.setName(templateName);
-			docTemplateDetail.setDescription(templateDescription);
-			docTemplateDetailsService.create(docTemplateDetail);
-			return ResponseEntity.ok().body("Success!!");
+			else {
+				DocTemplates docTemplate = new DocTemplates();
+				docTemplate.setId(String.valueOf(randomNumber));
+				docTemplate.setTemplate(encoded);
+				docTemplatesService.create(docTemplate);
+
+				docTemplateDetail = new DocTemplateDetails();
+				docTemplateDetail.setDocTemplateId(String.valueOf(randomNumber));
+				docTemplateDetail.setName(templateName);
+				docTemplateDetail.setDescription(templateDescription);
+				docTemplateDetailsService.create(docTemplateDetail);
+				return ResponseEntity.ok().body(" Template Uploaded successfully!!");
+			}
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			return new ResponseEntity<>("Error!", HttpStatus.INTERNAL_SERVER_ERROR);

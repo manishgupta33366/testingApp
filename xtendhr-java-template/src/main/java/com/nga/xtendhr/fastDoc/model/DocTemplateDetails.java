@@ -21,6 +21,7 @@ import com.nga.xtendhr.fastDoc.config.DBConfiguration;
 @Table(name = DBConfiguration.DOC_TEMPLATE_DETAILS, schema = DBConfiguration.SCHEMA_NAME)
 @NamedQueries({
 		@NamedQuery(name = "DocTemplateDetails.findById", query = "SELECT DTD FROM DocTemplateDetails DTD WHERE DTD.docTemplateId = :docTemplateId"),
+		@NamedQuery(name = "DocTemplateDetails.findByName", query = "SELECT DTD FROM DocTemplateDetails DTD WHERE DTD.name = :name"),
 		@NamedQuery(name = "DocTemplateDetails.selectAll", query = "SELECT DTD FROM DocTemplateDetails DTD") })
 public class DocTemplateDetails {
 	@Id
