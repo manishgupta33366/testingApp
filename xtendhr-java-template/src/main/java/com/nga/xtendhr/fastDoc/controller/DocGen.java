@@ -361,6 +361,12 @@ public class DocGen {
 				DocTemplates docTemplate = new DocTemplates();
 				docTemplate.setId(docTemplateDetail.getDocTemplateId());
 				docTemplate.setTemplate(encoded);
+				docTemplatesService.update(docTemplate);
+
+				docTemplateDetail = new DocTemplateDetails();
+				docTemplateDetail.setDocTemplateId(docTemplateDetail.getDocTemplateId());
+				docTemplateDetail.setDescription(templateDescription);
+				docTemplateDetailsService.update(docTemplateDetail);
 				return ResponseEntity.ok().body("Template Updated successfully!!");
 			}
 
@@ -1227,7 +1233,6 @@ public class DocGen {
 			return "Error! You are not authorized to access this resource! This event has been logged!";
 		}
 		JSONObject requestData = new JSONObject((String) session.getAttribute("requestData"));
-		String loggerInUser = (String) session.getAttribute("loggedInUser");
 		String templateID = requestData.getString("templateID");
 		Boolean inPDF = requestData.getBoolean("inPDF");
 		/*
@@ -1236,8 +1241,8 @@ public class DocGen {
 		 */
 
 		/*
-		 * ***Warning Any Admin can download Template for any user ... i.e. A template
-		 * that may not be available to a user.
+		 * ***Warning Any Admin can download Template for any user ... i.e. even when A
+		 * template that may not be available for the user.
 		 */
 //		if (!adminTemplateAvailableCheck(ruleID, session, true)) { // for DirectReport
 //			logger.error("Unauthorized access! User: " + loggerInUser
@@ -1266,7 +1271,7 @@ public class DocGen {
 			NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException,
 			InvocationTargetException, NamingException, URISyntaxException, IOException, XmlException {
 
-		// Rule in DB to download doc for Admin
+		// Rule in DB to download doc for Admin self
 		String loggerInUser = (String) session.getAttribute("loggedInUser");
 		/*
 		 *** Security Check *** Checking if user trying to login is exactly an Admin or
@@ -1399,6 +1404,130 @@ public class DocGen {
 			response.put(groupID, tempResponse);
 		}
 		return response.toString();
+	}
+
+	String adminSendEmail(String ruleID, HttpSession session, Boolean forDirectReport, HttpServletResponse httpResponse)
+			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
+			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
+			NamingException, URISyntaxException, IOException, JSONException, XmlException, AddressException,
+			MessagingException {
+		// Rule in DB to email for Admin self
+		String loggerInUser = (String) session.getAttribute("loggedInUser");
+		/*
+		 *** Security Check *** Checking if user trying to login is exactly an Admin or
+		 * not
+		 *
+		 */
+		if (session.getAttribute("adminLoginStatus") == null) {
+			logger.error("Unauthorized access! User:" + (String) session.getAttribute("loggedInUser")
+					+ ", which is not an admin in SF, tried to access adminDocDownload endpoint");
+			return "Error! You are not authorized to access this resource! This event has been logged!";
+		}
+		JSONObject requestData = new JSONObject((String) session.getAttribute("requestData"));
+		String templateID = requestData.getString("templateID");
+
+		/*
+		 *** Security Check *** Checking if templateID passed from UI is actually
+		 * available for the loggedIn user
+		 */
+
+		if (!adminTemplateAvailableCheck(ruleID, session, false, httpResponse)) { // for DirectReport
+			logger.error("Unauthorized access! User: " + loggerInUser
+					+ " Tried downloading document of a template that is not assigned for this user, templateID: "
+					+ templateID);
+			return "You are not authorized to access this data! This event has been logged!";
+		}
+
+		// Removing all the entities data from the session for Hard Reload of data from
+		// SF
+		List<String> distinctEntityNames = entitiesService.getDistinctNames();
+		Iterator<String> entityNamesItr = distinctEntityNames.iterator();
+		while (entityNamesItr.hasNext()) {
+			session.removeAttribute(entityNamesItr.next());
+		}
+		// Now Generating Object to POST
+		JSONObject docRequestObject = getDocTagsObject(templateID, session, false, httpResponse); // for direct report
+
+		DocTemplates docTemplate = docTemplatesService.findById(requestData.getString("templateId")).get(0);// Template
+																											// saved in
+																											// DB
+		InputStream inputStream = new ByteArrayInputStream(docTemplate.getTemplate()); // creating input-stream
+																						// from
+																						// template to create docx
+																						// file
+		XWPFDocument doc = new XWPFDocument(inputStream);
+
+		replaceTags(doc, docRequestObject.getJSONArray("tagsArray")); // Replace Tags in the doc
+
+		Boolean inPDF = requestData.getBoolean("inPDF");
+		List<MapRuleFields> mapRuleField = mapRuleFieldsService.findByRuleID(ruleID);
+		String sendTo = getFieldValue(mapRuleField.get(2).getField(), session, false, null, httpResponse);
+		if (sendTo.equals(""))
+			return "Error No Email adderss found in DB";
+		sendEmail(doc, inPDF, sendTo);
+
+		return "Success!!";
+	}
+
+	String adminSendDREmail(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, ClientProtocolException,
+			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException,
+			JSONException, XmlException, AddressException, MessagingException {
+		// Rule in DB to email with template of Direct Report for Admin
+		/*
+		 *** Security Check *** Checking if user trying to login is exactly an Admin or
+		 * not
+		 *
+		 */
+		if (session.getAttribute("adminLoginStatus") == null) {
+			logger.error("Unauthorized access! User:" + (String) session.getAttribute("loggedInUser")
+					+ ", which is not an admin in SF, tried to access adminDocDownloadDirectReport endpoint");
+			return "Error! You are not authorized to access this resource! This event has been logged!";
+		}
+		JSONObject requestData = new JSONObject((String) session.getAttribute("requestData"));
+		String templateID = requestData.getString("templateID");
+		Boolean inPDF = requestData.getBoolean("inPDF");
+		/*
+		 *** Security Check *** Checking if templateID passed from UI is actually
+		 * available for the loggedIn user
+		 */
+
+		/*
+		 * ***Warning Any Admin can download Template for any user ... i.e. even when A
+		 * template that may not be available for the user.
+		 */
+//		if (!adminTemplateAvailableCheck(ruleID, session, true)) { // for DirectReport
+//			logger.error("Unauthorized access! User: " + loggerInUser
+//					+ " Tried downloading document of a template templateID: " + templateID
+//					+ " Which is not available for the UserId provided.");
+//			return "You are not authorized to access this data! This event has been logged!";
+//		}
+		// Removing all the entities data from the session for Hard Reload of data from
+		// SF
+		List<String> distinctEntityNames = entitiesService.getDistinctNames();
+		Iterator<String> entityNamesItr = distinctEntityNames.iterator();
+		while (entityNamesItr.hasNext()) {
+			session.removeAttribute("directReportEntities-" + requestData.getString("userID") + entityNamesItr.next());
+		}
+		// Now Generating Object to POST
+		JSONObject docRequestObject = getDocTagsObject(templateID, session, true, httpResponse);// for direct Report
+																								// true
+		DocTemplates docTemplate = docTemplatesService.findById(requestData.getString("templateId")).get(0);// Template
+		// saved in
+		// DB
+		InputStream inputStream = new ByteArrayInputStream(docTemplate.getTemplate()); // creating input-stream
+		// from template to create docx file
+		XWPFDocument doc = new XWPFDocument(inputStream);
+
+		replaceTags(doc, docRequestObject.getJSONArray("tagsArray")); // Replace Tags in the doc
+
+		List<MapRuleFields> mapRuleField = mapRuleFieldsService.findByRuleID(ruleID);
+		String sendTo = getFieldValue(mapRuleField.get(2).getField(), session, true, null, httpResponse);
+		if (sendTo.equals(""))
+			return "Error No Email adderss found in DB";
+		sendEmail(doc, inPDF, sendTo);
+		return "Success!!";
 	}
 
 	private Boolean adminTemplateAvailableCheck(String ruleID, HttpSession session, Boolean forDirectReport,
@@ -2328,7 +2457,8 @@ public class DocGen {
 			throws BatchException, JSONException, ClientProtocolException, UnsupportedOperationException,
 			NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException,
 			InvocationTargetException, NamingException, URISyntaxException, IOException, XmlException {
-		// Rule in DB to download doc
+		// Rule in DB to download doc for normal user (ie. an Employee/Manager Self and
+		// not an Admin)
 
 		JSONObject requestData = new JSONObject((String) session.getAttribute("requestData"));
 		String loggerInUser = (String) session.getAttribute("loggedInUser");
@@ -2359,12 +2489,66 @@ public class DocGen {
 		return generateDoc(docRequestObject, templateID, inPDF, httpResponse);
 	}
 
+	String sendEmail(String ruleID, HttpSession session, Boolean forDirectReport, HttpServletResponse httpResponse)
+			throws BatchException, JSONException, ClientProtocolException, UnsupportedOperationException,
+			NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException,
+			InvocationTargetException, NamingException, URISyntaxException, IOException, AddressException,
+			MessagingException, XmlException {
+		// Rule in DB to send email with doc for normal user self (ie. an
+		// Employee/Manager Self
+		// and
+		// not an Admin)
+
+		JSONObject requestData = new JSONObject((String) session.getAttribute("requestData"));
+		String loggerInUser = (String) session.getAttribute("loggedInUser");
+		String templateID = requestData.getString("templateID");
+		Boolean inPDF = requestData.getBoolean("inPDF");
+
+		/*
+		 *** Security Check *** Checking if templateID passed from UI is actually
+		 * available for the loggedIn user
+		 */
+		if (!templateAvailableCheck(ruleID, session, false, httpResponse)) { // for DirectReport false
+			logger.error("Unauthorized access! User: " + loggerInUser
+					+ " Tried sending email with document of a template that is not assigned for this user, templateID: "
+					+ templateID);
+			return "You are not authorized to access this data! This event has been logged!";
+		}
+		// Removing all the entities data from the session for Hard Reload of data from
+		// SF
+		List<String> distinctEntityNames = entitiesService.getDistinctNames();
+		Iterator<String> entityNamesItr = distinctEntityNames.iterator();
+		while (entityNamesItr.hasNext()) {
+			session.removeAttribute(entityNamesItr.next());
+		}
+		/// Now Generating Object to POST
+		JSONObject docRequestObject = getDocTagsObject(templateID, session, false, httpResponse); // for direct report
+
+		DocTemplates docTemplate = docTemplatesService.findById(requestData.getString("templateId")).get(0);// Template
+																											// saved in
+																											// DB
+		InputStream inputStream = new ByteArrayInputStream(docTemplate.getTemplate()); // creating input-stream
+																						// from
+																						// template to create docx
+																						// file
+		XWPFDocument doc = new XWPFDocument(inputStream);
+
+		replaceTags(doc, docRequestObject.getJSONArray("tagsArray")); // Replace Tags in the doc
+
+		List<MapRuleFields> mapRuleField = mapRuleFieldsService.findByRuleID(ruleID);
+		String sendTo = getFieldValue(mapRuleField.get(2).getField(), session, false, null, httpResponse);
+		if (sendTo.equals(""))
+			return "Error No Email adderss found in DB";
+		sendEmail(doc, inPDF, sendTo);
+		return "Success!!";
+	}
+
 	String docDownloadDirectReport(String ruleID, HttpSession session, Boolean forDirectReport,
 			HttpServletResponse httpResponse)
 			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
 			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
 			NamingException, URISyntaxException, IOException, XmlException {
-		// Rule in DB to download doc of Direct report
+		// Rule in DB to download doc of Direct report for Manager
 
 		JSONObject requestData = new JSONObject((String) session.getAttribute("requestData"));
 		List<MapRuleFields> mapRuleField = mapRuleFieldsService.findByRuleID(ruleID);
@@ -2421,6 +2605,79 @@ public class DocGen {
 																								// true
 		logger.debug("Doc Generation Request Obj: " + docRequestObject.toString());
 		return generateDoc(docRequestObject, templateID, inPDF, httpResponse);
+	}
+
+	String sendEmailDirectReport(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, ClientProtocolException,
+			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException,
+			JSONException, XmlException, AddressException, MessagingException {
+		// Rule in DB to send email with doc of Direct report for Manager
+		JSONObject requestData = new JSONObject((String) session.getAttribute("requestData"));
+		List<MapRuleFields> mapRuleField = mapRuleFieldsService.findByRuleID(ruleID);
+		Boolean isManager = Boolean
+				.parseBoolean(getFieldValue(mapRuleField.get(3).getField(), session, false, null, httpResponse));
+		String loggerInUser = (String) session.getAttribute("loggedInUser");
+		String userID = requestData.getString("userID");
+		String templateID = requestData.getString("templateID");
+		Boolean inPDF = requestData.getBoolean("inPDF");
+		/*
+		 *** Security Check *** Checking if loggedIn user is a manager
+		 *
+		 */
+		if (!isManager) {
+			logger.error("Unauthorized access! User: " + loggerInUser
+					+ " who is not a manager, Tried downloading doc for user: " + requestData.getString("userID"));
+			return "You are not authorized to access this data! This event has been logged!";
+		}
+
+		/*
+		 *** Security Check *** Checking if userID passed from UI is actually a direct
+		 * report of the loggenIn user
+		 */
+		Boolean isDirectReport = Boolean
+				.parseBoolean(getFieldValue(mapRuleField.get(2).getField(), session, false, null, httpResponse)); // For
+																													// directReport
+		// false
+
+		if (!isDirectReport) {
+			logger.error("Unauthorized access! User: " + loggerInUser + " Tried downloading doc of a user: " + userID
+					+ ", which is not its direct report or level 2");// userID passed from UI
+			return "You are not authorized to access this data! This event has been logged!";
+		}
+
+		/*
+		 *** Security Check *** Checking if templateID passed from UI is actually
+		 * available for the userID provided
+		 */
+		if (!templateAvailableCheck(ruleID, session, true, httpResponse)) {// for direct Report true
+			logger.error("Unauthorized access! User: " + loggerInUser + " Tried downloading doc of the user: " + userID
+					+ " and template: " + templateID + " which is not assigned for this user");
+			return "You are not authorized to access this data! This event has been logged!";
+		}
+
+		// Removing all the entities data from the session for Hard Reload of data from
+		// SF
+		List<String> distinctEntityNames = entitiesService.getDistinctNames();
+		Iterator<String> entityNamesItr = distinctEntityNames.iterator();
+		while (entityNamesItr.hasNext()) {
+			session.removeAttribute("directReportEntities-" + requestData.getString("userID") + entityNamesItr.next());
+		}
+		// Now Generating Object to POST
+		JSONObject docRequestObject = getDocTagsObject(templateID, session, true, httpResponse);// for direct Report
+		DocTemplates docTemplate = docTemplatesService.findById(requestData.getString("templateId")).get(0);// Template
+		// saved in DB
+		InputStream inputStream = new ByteArrayInputStream(docTemplate.getTemplate()); // creating input-stream
+		// from template to create docx file
+		XWPFDocument doc = new XWPFDocument(inputStream);
+
+		replaceTags(doc, docRequestObject.getJSONArray("tagsArray")); // Replace Tags in the doc
+
+		String sendTo = getFieldValue(mapRuleField.get(4).getField(), session, true, null, httpResponse);
+		if (sendTo.equals(""))
+			return "Error No Email adderss found in DB";
+		sendEmail(doc, inPDF, sendTo);
+		return "Success!!";
 	}
 	/*
 	 *** POST Rules END***
@@ -3327,6 +3584,73 @@ public class DocGen {
 		}
 		return w;
 	}
+
+	private String sendEmail(XWPFDocument doc, boolean inPDF, String sendTo)
+			throws AddressException, MessagingException, IOException, NamingException {
+
+		DestinationClient javaDestClient = CommonFunctions.getDestinationCLient(CommonVariables.GMAIL_ACCOUNT);
+		Properties prop = new Properties();
+		prop.put("mail.smtp.host", javaDestClient.getDestProperty("smtpHost"));
+		prop.put("mail.smtp.port", javaDestClient.getDestProperty("port"));
+		prop.put("mail.smtp.auth", "true");
+		prop.put("mail.smtp.socketFactory.port", javaDestClient.getDestProperty("port"));
+		prop.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+
+		Session mailSession = Session.getInstance(prop, new javax.mail.Authenticator() {
+			protected PasswordAuthentication getPasswordAuthentication() {
+				return new PasswordAuthentication(javaDestClient.getDestProperty("User"),
+						javaDestClient.getDestProperty("Password"));
+			}
+		});
+
+		//
+		Message message = new MimeMessage(mailSession);
+		message.setFrom(new InternetAddress(javaDestClient.getDestProperty("User")));
+		/*
+		 * JSONArray emailIds = requestObj.getJSONArray("sendTo"); for (int i = -0; i <
+		 * emailIds.length(); i++) { message.setRecipients(Message.RecipientType.TO,
+		 * InternetAddress.parse(emailIds.getString(i))); }
+		 */
+
+		message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(sendTo));
+
+		message.setSubject("Testing Gmail SSL");
+		message.setText("," + "\n\n Test email!");
+
+		File file;
+		Random random = new Random(); // to generate a random fileName
+		int randomNumber = random.nextInt(987656554);
+
+		if (!inPDF) {
+			FileOutputStream fileOutputStream = new FileOutputStream("GeneratedDoc_" + randomNumber + ".docx"); // Temp
+																												// location
+			doc.write(fileOutputStream);// writing the updated Template to FileOutputStream // to save file
+			file = new File(Paths.get("GeneratedDoc_" + randomNumber + ".docx").toString()); // reading the file
+			// generated from
+			// fileOutputStream
+
+		} else {
+			FileOutputStream fileOutputStream = new FileOutputStream("GeneratedDoc_" + randomNumber + ".pdf"); // Temp
+																												// location
+			PdfOptions options = PdfOptions.create().fontEncoding("windows-1250");
+			PdfConverter.getInstance().convert(doc, fileOutputStream, options);
+			file = new File(Paths.get("GeneratedDoc_" + randomNumber + ".pdf").toString());
+		}
+
+		MimeBodyPart attachmentPart = new MimeBodyPart();
+		MimeBodyPart textPart = new MimeBodyPart();
+		Multipart multipart = new MimeMultipart();
+
+		attachmentPart.attachFile(file);
+		textPart.setText("This is text");
+		multipart.addBodyPart(textPart);
+		multipart.addBodyPart(attachmentPart);
+		message.setContent(multipart);
+
+		Transport.send(message);
+		return "Success!";
+	}
+
 	/*
 	 *** Helper functions END***
 	 */
