@@ -55,6 +55,7 @@ com\nga\xtendhr\fastDoc\model\DocTemplateDetails.class
 com\nga\xtendhr\fastDoc\model\Rules.class
 com\nga\xtendhr\fastDoc\model\MapRuleFields.class
 com\nga\xtendhr\workStoppage\service\StoppageDetailsService.class
+com\nga\xtendhr\fastDoc\controller\DocGen$2.class
 com\nga\xtendhr\fastDoc\service\ConfigurableColumnsServiceImp.class
 com\nga\xtendhr\fastDoc\service\SFDataMappingService.class
 com\nga\xtendhr\fastDoc\service\TextService.class

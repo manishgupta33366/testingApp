@@ -1265,6 +1265,67 @@ public class DocGen {
 		return generateDoc(docRequestObject, templateID, inPDF, httpResponse);
 	}
 
+	String adminSendDREmail(String ruleID, HttpSession session, Boolean forDirectReport,
+			HttpServletResponse httpResponse) throws BatchException, ClientProtocolException,
+			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
+			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException,
+			JSONException, XmlException, AddressException, MessagingException {
+		// Rule in DB to email with template of Direct Report for Admin
+		/*
+		 *** Security Check *** Checking if user trying to login is exactly an Admin or
+		 * not
+		 *
+		 */
+		if (session.getAttribute("adminLoginStatus") == null) {
+			logger.error("Unauthorized access! User:" + (String) session.getAttribute("loggedInUser")
+					+ ", which is not an admin in SF, tried to access adminDocDownloadDirectReport endpoint");
+			return "Error! You are not authorized to access this resource! This event has been logged!";
+		}
+		JSONObject requestData = new JSONObject((String) session.getAttribute("requestData"));
+		String templateID = requestData.getString("templateID");
+		Boolean inPDF = requestData.getBoolean("inPDF");
+		/*
+		 *** Security Check *** Checking if templateID passed from UI is actually
+		 * available for the loggedIn user
+		 */
+
+		/*
+		 * ***Warning Any Admin can download Template for any user ... i.e. even when A
+		 * template that may not be available for the user.
+		 */
+//		if (!adminTemplateAvailableCheck(ruleID, session, true)) { // for DirectReport
+//			logger.error("Unauthorized access! User: " + loggerInUser
+//					+ " Tried downloading document of a template templateID: " + templateID
+//					+ " Which is not available for the UserId provided.");
+//			return "You are not authorized to access this data! This event has been logged!";
+//		}
+		// Removing all the entities data from the session for Hard Reload of data from
+		// SF
+		List<String> distinctEntityNames = entitiesService.getDistinctNames();
+		Iterator<String> entityNamesItr = distinctEntityNames.iterator();
+		while (entityNamesItr.hasNext()) {
+			session.removeAttribute("directReportEntities-" + requestData.getString("userID") + entityNamesItr.next());
+		}
+		// Now Generating Object to POST
+		JSONObject docRequestObject = getDocTagsObject(templateID, session, true, httpResponse);// for direct Report
+																								// true
+		DocTemplates docTemplate = docTemplatesService.findById(templateID).get(0);// Template
+		// saved in
+		// DB
+		InputStream inputStream = new ByteArrayInputStream(docTemplate.getTemplate()); // creating input-stream
+		// from template to create docx file
+		XWPFDocument doc = new XWPFDocument(inputStream);
+
+		replaceTags(doc, docRequestObject.getJSONArray("tagsArray")); // Replace Tags in the doc
+
+		List<MapRuleFields> mapRuleField = mapRuleFieldsService.findByRuleID(ruleID);
+		String sendTo = getFieldValue(mapRuleField.get(2).getField(), session, false, null, httpResponse);
+		if (sendTo.equals(""))
+			return "Error No Email adderss found in DB";
+		sendEmail(doc, inPDF, sendTo);
+		return "Success!!";
+	}
+
 	String adminDocDownload(String ruleID, HttpSession session, Boolean forDirectReport,
 			HttpServletResponse httpResponse)
 			throws BatchException, JSONException, ClientProtocolException, UnsupportedOperationException,
@@ -1311,6 +1372,69 @@ public class DocGen {
 																									// false
 		logger.debug("Doc Generation Request Obj: " + docRequestObject.toString());
 		return generateDoc(docRequestObject, templateID, inPDF, httpResponse);
+	}
+
+	String adminSendEmail(String ruleID, HttpSession session, Boolean forDirectReport, HttpServletResponse httpResponse)
+			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
+			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
+			NamingException, URISyntaxException, IOException, JSONException, XmlException, AddressException,
+			MessagingException {
+		// Rule in DB to email for Admin self
+		String loggerInUser = (String) session.getAttribute("loggedInUser");
+		/*
+		 *** Security Check *** Checking if user trying to login is exactly an Admin or
+		 * not
+		 *
+		 */
+		if (session.getAttribute("adminLoginStatus") == null) {
+			logger.error("Unauthorized access! User:" + (String) session.getAttribute("loggedInUser")
+					+ ", which is not an admin in SF, tried to access adminDocDownload endpoint");
+			return "Error! You are not authorized to access this resource! This event has been logged!";
+		}
+		JSONObject requestData = new JSONObject((String) session.getAttribute("requestData"));
+		String templateID = requestData.getString("templateID");
+
+		/*
+		 *** Security Check *** Checking if templateID passed from UI is actually
+		 * available for the loggedIn user
+		 */
+
+		if (!adminTemplateAvailableCheck(ruleID, session, false, httpResponse)) { // for DirectReport
+			logger.error("Unauthorized access! User: " + loggerInUser
+					+ " Tried downloading document of a template that is not assigned for this user, templateID: "
+					+ templateID);
+			return "You are not authorized to access this data! This event has been logged!";
+		}
+
+		// Removing all the entities data from the session for Hard Reload of data from
+		// SF
+		List<String> distinctEntityNames = entitiesService.getDistinctNames();
+		Iterator<String> entityNamesItr = distinctEntityNames.iterator();
+		while (entityNamesItr.hasNext()) {
+			session.removeAttribute(entityNamesItr.next());
+		}
+		// Now Generating Object to POST
+		JSONObject docRequestObject = getDocTagsObject(templateID, session, false, httpResponse); // for direct report
+
+		DocTemplates docTemplate = docTemplatesService.findById(templateID).get(0);// Template
+																					// saved in
+																					// DB
+		InputStream inputStream = new ByteArrayInputStream(docTemplate.getTemplate()); // creating input-stream
+																						// from
+																						// template to create docx
+																						// file
+		XWPFDocument doc = new XWPFDocument(inputStream);
+
+		replaceTags(doc, docRequestObject.getJSONArray("tagsArray")); // Replace Tags in the doc
+
+		Boolean inPDF = requestData.getBoolean("inPDF");
+		List<MapRuleFields> mapRuleField = mapRuleFieldsService.findByRuleID(ruleID);
+		String sendTo = getFieldValue(mapRuleField.get(2).getField(), session, false, null, httpResponse);
+		if (sendTo.equals(""))
+			return "Error No Email adderss found in DB";
+		sendEmail(doc, inPDF, sendTo);
+
+		return "Success!!";
 	}
 
 	String adminGetTemplates(String ruleID, HttpSession session, Boolean forDirectReport,
@@ -1404,130 +1528,6 @@ public class DocGen {
 			response.put(groupID, tempResponse);
 		}
 		return response.toString();
-	}
-
-	String adminSendEmail(String ruleID, HttpSession session, Boolean forDirectReport, HttpServletResponse httpResponse)
-			throws BatchException, ClientProtocolException, UnsupportedOperationException, NoSuchMethodException,
-			SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
-			NamingException, URISyntaxException, IOException, JSONException, XmlException, AddressException,
-			MessagingException {
-		// Rule in DB to email for Admin self
-		String loggerInUser = (String) session.getAttribute("loggedInUser");
-		/*
-		 *** Security Check *** Checking if user trying to login is exactly an Admin or
-		 * not
-		 *
-		 */
-		if (session.getAttribute("adminLoginStatus") == null) {
-			logger.error("Unauthorized access! User:" + (String) session.getAttribute("loggedInUser")
-					+ ", which is not an admin in SF, tried to access adminDocDownload endpoint");
-			return "Error! You are not authorized to access this resource! This event has been logged!";
-		}
-		JSONObject requestData = new JSONObject((String) session.getAttribute("requestData"));
-		String templateID = requestData.getString("templateID");
-
-		/*
-		 *** Security Check *** Checking if templateID passed from UI is actually
-		 * available for the loggedIn user
-		 */
-
-		if (!adminTemplateAvailableCheck(ruleID, session, false, httpResponse)) { // for DirectReport
-			logger.error("Unauthorized access! User: " + loggerInUser
-					+ " Tried downloading document of a template that is not assigned for this user, templateID: "
-					+ templateID);
-			return "You are not authorized to access this data! This event has been logged!";
-		}
-
-		// Removing all the entities data from the session for Hard Reload of data from
-		// SF
-		List<String> distinctEntityNames = entitiesService.getDistinctNames();
-		Iterator<String> entityNamesItr = distinctEntityNames.iterator();
-		while (entityNamesItr.hasNext()) {
-			session.removeAttribute(entityNamesItr.next());
-		}
-		// Now Generating Object to POST
-		JSONObject docRequestObject = getDocTagsObject(templateID, session, false, httpResponse); // for direct report
-
-		DocTemplates docTemplate = docTemplatesService.findById(requestData.getString("templateId")).get(0);// Template
-																											// saved in
-																											// DB
-		InputStream inputStream = new ByteArrayInputStream(docTemplate.getTemplate()); // creating input-stream
-																						// from
-																						// template to create docx
-																						// file
-		XWPFDocument doc = new XWPFDocument(inputStream);
-
-		replaceTags(doc, docRequestObject.getJSONArray("tagsArray")); // Replace Tags in the doc
-
-		Boolean inPDF = requestData.getBoolean("inPDF");
-		List<MapRuleFields> mapRuleField = mapRuleFieldsService.findByRuleID(ruleID);
-		String sendTo = getFieldValue(mapRuleField.get(2).getField(), session, false, null, httpResponse);
-		if (sendTo.equals(""))
-			return "Error No Email adderss found in DB";
-		sendEmail(doc, inPDF, sendTo);
-
-		return "Success!!";
-	}
-
-	String adminSendDREmail(String ruleID, HttpSession session, Boolean forDirectReport,
-			HttpServletResponse httpResponse) throws BatchException, ClientProtocolException,
-			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
-			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException,
-			JSONException, XmlException, AddressException, MessagingException {
-		// Rule in DB to email with template of Direct Report for Admin
-		/*
-		 *** Security Check *** Checking if user trying to login is exactly an Admin or
-		 * not
-		 *
-		 */
-		if (session.getAttribute("adminLoginStatus") == null) {
-			logger.error("Unauthorized access! User:" + (String) session.getAttribute("loggedInUser")
-					+ ", which is not an admin in SF, tried to access adminDocDownloadDirectReport endpoint");
-			return "Error! You are not authorized to access this resource! This event has been logged!";
-		}
-		JSONObject requestData = new JSONObject((String) session.getAttribute("requestData"));
-		String templateID = requestData.getString("templateID");
-		Boolean inPDF = requestData.getBoolean("inPDF");
-		/*
-		 *** Security Check *** Checking if templateID passed from UI is actually
-		 * available for the loggedIn user
-		 */
-
-		/*
-		 * ***Warning Any Admin can download Template for any user ... i.e. even when A
-		 * template that may not be available for the user.
-		 */
-//		if (!adminTemplateAvailableCheck(ruleID, session, true)) { // for DirectReport
-//			logger.error("Unauthorized access! User: " + loggerInUser
-//					+ " Tried downloading document of a template templateID: " + templateID
-//					+ " Which is not available for the UserId provided.");
-//			return "You are not authorized to access this data! This event has been logged!";
-//		}
-		// Removing all the entities data from the session for Hard Reload of data from
-		// SF
-		List<String> distinctEntityNames = entitiesService.getDistinctNames();
-		Iterator<String> entityNamesItr = distinctEntityNames.iterator();
-		while (entityNamesItr.hasNext()) {
-			session.removeAttribute("directReportEntities-" + requestData.getString("userID") + entityNamesItr.next());
-		}
-		// Now Generating Object to POST
-		JSONObject docRequestObject = getDocTagsObject(templateID, session, true, httpResponse);// for direct Report
-																								// true
-		DocTemplates docTemplate = docTemplatesService.findById(requestData.getString("templateId")).get(0);// Template
-		// saved in
-		// DB
-		InputStream inputStream = new ByteArrayInputStream(docTemplate.getTemplate()); // creating input-stream
-		// from template to create docx file
-		XWPFDocument doc = new XWPFDocument(inputStream);
-
-		replaceTags(doc, docRequestObject.getJSONArray("tagsArray")); // Replace Tags in the doc
-
-		List<MapRuleFields> mapRuleField = mapRuleFieldsService.findByRuleID(ruleID);
-		String sendTo = getFieldValue(mapRuleField.get(2).getField(), session, true, null, httpResponse);
-		if (sendTo.equals(""))
-			return "Error No Email adderss found in DB";
-		sendEmail(doc, inPDF, sendTo);
-		return "Success!!";
 	}
 
 	private Boolean adminTemplateAvailableCheck(String ruleID, HttpSession session, Boolean forDirectReport,
@@ -2524,9 +2524,9 @@ public class DocGen {
 		/// Now Generating Object to POST
 		JSONObject docRequestObject = getDocTagsObject(templateID, session, false, httpResponse); // for direct report
 
-		DocTemplates docTemplate = docTemplatesService.findById(requestData.getString("templateId")).get(0);// Template
-																											// saved in
-																											// DB
+		DocTemplates docTemplate = docTemplatesService.findById(templateID).get(0);// Template
+																					// saved in
+																					// DB
 		InputStream inputStream = new ByteArrayInputStream(docTemplate.getTemplate()); // creating input-stream
 																						// from
 																						// template to create docx
@@ -2665,7 +2665,7 @@ public class DocGen {
 		}
 		// Now Generating Object to POST
 		JSONObject docRequestObject = getDocTagsObject(templateID, session, true, httpResponse);// for direct Report
-		DocTemplates docTemplate = docTemplatesService.findById(requestData.getString("templateId")).get(0);// Template
+		DocTemplates docTemplate = docTemplatesService.findById(templateID).get(0);// Template
 		// saved in DB
 		InputStream inputStream = new ByteArrayInputStream(docTemplate.getTemplate()); // creating input-stream
 		// from template to create docx file
@@ -2673,7 +2673,7 @@ public class DocGen {
 
 		replaceTags(doc, docRequestObject.getJSONArray("tagsArray")); // Replace Tags in the doc
 
-		String sendTo = getFieldValue(mapRuleField.get(4).getField(), session, true, null, httpResponse);
+		String sendTo = getFieldValue(mapRuleField.get(4).getField(), session, false, null, httpResponse);
 		if (sendTo.equals(""))
 			return "Error No Email adderss found in DB";
 		sendEmail(doc, inPDF, sendTo);
