@@ -2163,9 +2163,7 @@ public class DocGen {
 	}
 
 	String getLoggedInUser(String ruleID, HttpSession session, Boolean forDirectReport,
-			HttpServletResponse httpResponse) throws BatchException, ClientProtocolException,
-			UnsupportedOperationException, NoSuchMethodException, SecurityException, IllegalAccessException,
-			IllegalArgumentException, InvocationTargetException, NamingException, URISyntaxException, IOException {
+			HttpServletResponse httpResponse) {
 		// Rule in DB to get the current loggedIn User
 		return (String) session.getAttribute("loggedInUser");
 	}
