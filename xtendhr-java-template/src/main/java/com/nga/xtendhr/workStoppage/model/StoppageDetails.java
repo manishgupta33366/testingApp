@@ -15,8 +15,9 @@ import com.nga.xtendhr.workStoppage.config.DBConfiguration;
 @Table(name = DBConfiguration.STOPPAGE_DETAILS, schema = DBConfiguration.SCHEMA_NAME)
 @NamedQueries({
 		@NamedQuery(name = "StoppageDetails.findAll", query = "SELECT SD FROM StoppageDetails SD ORDER BY SD.startDate DESC"),
-		@NamedQuery(name = "StoppageDetails.findAllApproved", query = "SELECT SD FROM StoppageDetails SD WHERE SD.isApproved = :isApproved ORDER BY SD.startDate DESC"),
-		@NamedQuery(name = "StoppageDetails.findAllNotApproved", query = "SELECT SD FROM StoppageDetails SD WHERE SD.isApproved = :isApproved ORDER BY SD.startDate DESC"),
+		@NamedQuery(name = "StoppageDetails.findAllApproved", query = "SELECT SD FROM StoppageDetails SD WHERE SD.isApproved = :isApproved ORDER BY SD.approvedOn DESC"),
+		@NamedQuery(name = "StoppageDetails.findAllRejected", query = "SELECT SD FROM StoppageDetails SD WHERE SD.isRejected = :isRejected ORDER BY SD.rejectedOn DESC"),
+		@NamedQuery(name = "StoppageDetails.findAllNotApproved", query = "SELECT SD FROM StoppageDetails SD WHERE SD.isApproved = :isApproved and SD.isRejected= :isRejected ORDER BY SD.startDate DESC"),
 		@NamedQuery(name = "StoppageDetails.findByEmployeeId", query = "SELECT SD FROM StoppageDetails SD WHERE SD.employeeId = :employeeId ORDER BY SD.startDate DESC") })
 public class StoppageDetails {
 	@Id
@@ -64,6 +65,61 @@ public class StoppageDetails {
 
 	@Column(name = "\"PREGNANCY_RELATED\"", columnDefinition = "BOOLEAN")
 	private Boolean pregnancyRelated;
+
+	@Column(name = "\"PART_TIME_PERCENTAGE\"", columnDefinition = "String(32)")
+	private String partTimePercentage;
+
+	@Column(name = "\"IS_REJECTED\"", columnDefinition = "BOOLEAN")
+	private Boolean isRejected;
+
+	@Column(name = "\"REJECTED_REASON\"", columnDefinition = "String(128)")
+	private String rejectedReason;
+
+	@Column(name = "\"REJECTED_BY\"", columnDefinition = "String(32)")
+	private String rejectedBy;
+
+	@Column(name = "\"REJECTED_ON\"", columnDefinition = "SECONDDATE")
+	private Date rejectedOn;
+
+	public String getRejectedby() {
+		return rejectedBy;
+	}
+
+	public void setRejectedBy(String rejectedBy) {
+		this.rejectedBy = rejectedBy;
+	}
+
+	public Date getRejectedOn() {
+		return rejectedOn;
+	}
+
+	public void setRejectedOn(Date rejectedOn) {
+		this.rejectedOn = rejectedOn;
+	}
+
+	public String getPartTimePercentage() {
+		return partTimePercentage;
+	}
+
+	public void setPartTimePercentage(String partTimePercentage) {
+		this.partTimePercentage = partTimePercentage;
+	}
+
+	public Boolean getIsRejected() {
+		return isRejected;
+	}
+
+	public void setIsRejected(Boolean isRejected) {
+		this.isRejected = isRejected;
+	}
+
+	public String getRejectedReason() {
+		return rejectedReason;
+	}
+
+	public void setRejectedReason(String rejectedReason) {
+		this.rejectedReason = rejectedReason;
+	}
 
 	public String getAccidentType() {
 		return accidentType;

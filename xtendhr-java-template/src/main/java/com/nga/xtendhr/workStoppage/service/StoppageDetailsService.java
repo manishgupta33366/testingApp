@@ -19,5 +19,7 @@ public interface StoppageDetailsService {
 
 	public List<StoppageDetails> findAllApproved();
 
+	public List<StoppageDetails> findAllRejected();
+
 	public List<StoppageDetails> findAllNotApproved();
 }

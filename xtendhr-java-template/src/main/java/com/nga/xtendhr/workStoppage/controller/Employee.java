@@ -111,12 +111,14 @@ public class Employee {
 			stoppageDetails.setStoppageType((String) session.getAttribute("stoppageType"));
 			// stoppageDetails.setDocumentType((String) session.getAttribute("fileName"));
 			stoppageDetails.setIsApproved(false);
+			stoppageDetails.setIsRejected(false);
 			stoppageDetails.setIsTherapeutic(requestObj.getBoolean("isTherapeutic"));
 			if (requestObj.getBoolean("isTherapeutic")) {
 				stoppageDetails.setTherapyStartDate(
 						new SimpleDateFormat("yyyy-MM-dd").parse(requestObj.getString("therapyStartDate")));
 				stoppageDetails.setTherapyEndDate(
 						new SimpleDateFormat("yyyy-MM-dd").parse(requestObj.getString("therapyEndDate")));
+				stoppageDetails.setPartTimePercentage(requestObj.getString("partTimePercentage"));
 			}
 			if (requestObj.getBoolean("isAccident")) {
 				stoppageDetails.setAccidentType(requestObj.getString("accidentType"));
@@ -162,9 +164,13 @@ public class Employee {
 		headers.add("Prediction-Key", "56cbaeb01116458182c9810633d151d6");
 		HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(bodyMap, headers);
 		RestTemplate restTemplate = new RestTemplate();
+		logger.debug("File Name: " + multipartFile.getName());
+		logger.debug("File contentType: " + multipartFile.getContentType());
+		logger.debug("calling Azure service....");
 		ResponseEntity<String> response = restTemplate.exchange(
 				"https://southcentralus.api.cognitive.microsoft.com/customvision/v3.0/Prediction/f6830796-4ee9-4bd1-87fd-57df2afe01dc/classify/iterations/Iteration5/image",
 				HttpMethod.POST, requestEntity, String.class);
+		logger.debug("Azure service call completed....");
 		JSONObject responseObj = new JSONObject(response.getBody());
 		responseObj.put("userId", request.getUserPrincipal().getName());
 		session.setAttribute("userId", request.getUserPrincipal().getName());

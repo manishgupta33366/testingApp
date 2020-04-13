@@ -53,6 +53,16 @@ public class Manager {
 		}
 	}
 
+	@GetMapping(value = "/getAllRejectedStoppageDetails")
+	public ResponseEntity<?> getAllRejectedStoppageDetails(HttpServletRequest request) {
+		try {
+			return ResponseEntity.ok().body(stoppageDetailsService.findAllRejected());
+		} catch (Exception e) {
+			e.printStackTrace();
+			return new ResponseEntity<>("Error!", HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+
 	@GetMapping(value = "/getAllNonApprovedStoppageDetails")
 	public ResponseEntity<?> getAllNonApprovedStoppageDetails(HttpServletRequest request) {
 		try {
@@ -72,10 +82,19 @@ public class Manager {
 			for (int i = 0; i < requestArray.length(); i++) {
 				tempJsonObject = requestArray.getJSONObject(i);
 				stoppageDetails = stoppageDetailsService.findById(tempJsonObject.getString("id"));
-				stoppageDetails.setIsApproved(tempJsonObject.getBoolean("isApproved"));
-				stoppageDetails.setApprovedOn(new SimpleDateFormat("yyyy-MM-dd")
-						.parse(new SimpleDateFormat("yyyy-MM-dd").format(new Date())));
-				stoppageDetails.setApprovedBy(request.getUserPrincipal().getName());
+				if (tempJsonObject.getBoolean("isApproved")) {
+					stoppageDetails.setIsApproved(tempJsonObject.getBoolean("isApproved"));
+					stoppageDetails.setApprovedOn(new SimpleDateFormat("yyyy-MM-dd")
+							.parse(new SimpleDateFormat("yyyy-MM-dd").format(new Date())));
+					stoppageDetails.setApprovedBy(request.getUserPrincipal().getName());
+				} else {
+					stoppageDetails.setIsRejected(tempJsonObject.getBoolean("isRejected"));
+					stoppageDetails.setRejectedReason(tempJsonObject.getString("rejectedReason"));
+					stoppageDetails.setRejectedOn(new SimpleDateFormat("yyyy-MM-dd")
+							.parse(new SimpleDateFormat("yyyy-MM-dd").format(new Date())));
+					stoppageDetails.setRejectedBy(request.getUserPrincipal().getName());
+				}
+
 				stoppageDetailsService.update(stoppageDetails);
 			}
 			return ResponseEntity.ok().body("Success!");

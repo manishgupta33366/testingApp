@@ -71,9 +71,19 @@ public class StoppageDetailsServiceImp implements StoppageDetailsService {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public List<StoppageDetails> findAllNotApproved() {
-		Query query = em.createNamedQuery("StoppageDetails.findAllNotApproved").setParameter("isApproved", false);
+	public List<StoppageDetails> findAllRejected() {
+		Query query = em.createNamedQuery("StoppageDetails.findAllRejected").setParameter("isRejected", true);
 		List<StoppageDetails> items = query.getResultList();
 		return items;
 	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<StoppageDetails> findAllNotApproved() { // All those are available for approval
+		Query query = em.createNamedQuery("StoppageDetails.findAllNotApproved").setParameter("isApproved", false)
+				.setParameter("isRejected", false);
+		List<StoppageDetails> items = query.getResultList();
+		return items;
+	}
+
 }
