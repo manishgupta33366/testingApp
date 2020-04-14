@@ -40,7 +40,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.nga.xtendhr.connection.DestinationClient;
+import com.nga.xtendhr.fastDoc.connection.DestinationClient;
 import com.nga.xtendhr.fastDoc.utility.CommonFunctions;
 import com.nga.xtendhr.fastDoc.utility.CommonVariables;
 import com.nga.xtendhr.workStoppage.model.StoppageDetails;

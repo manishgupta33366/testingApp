@@ -20,8 +20,8 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.nga.xtendhr.connection.DestinationClient;
 import com.nga.xtendhr.fastDoc.connection.ConnectionWithJWT;
+import com.nga.xtendhr.fastDoc.connection.DestinationClient;
 import com.nga.xtendhr.fastDoc.controller.DocGen;
 import com.sap.core.connectivity.api.configuration.ConnectivityConfiguration;
 import com.sap.core.connectivity.api.configuration.DestinationConfiguration;

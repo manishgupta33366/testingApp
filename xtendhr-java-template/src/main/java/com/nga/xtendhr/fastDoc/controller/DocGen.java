@@ -75,8 +75,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.nga.xtendhr.connection.DestinationClient;
 import com.nga.xtendhr.fastDoc.connection.BatchRequest;
+import com.nga.xtendhr.fastDoc.connection.DestinationClient;
 import com.nga.xtendhr.fastDoc.model.CodelistText;
 import com.nga.xtendhr.fastDoc.model.CountrySpecificFields;
 import com.nga.xtendhr.fastDoc.model.DocTemplateDetails;

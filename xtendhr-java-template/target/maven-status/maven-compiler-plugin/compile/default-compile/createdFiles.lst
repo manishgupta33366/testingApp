@@ -1,14 +1,11 @@
-com\nga\xtendhr\config\DBConfiguration.class
 com\nga\xtendhr\fastDoc\config\DBConfiguration.class
 com\nga\xtendhr\fastDoc\model\Countries.class
 com\nga\xtendhr\fastDoc\service\FormatSeparatorsService.class
 com\nga\xtendhr\fastDoc\model\Operators.class
-com\nga\xtendhr\utility\ErrorHandlerController.class
 com\nga\xtendhr\Application.class
 com\nga\xtendhr\fastDoc\model\Text.class
 com\nga\xtendhr\fastDoc\model\MapTemplateCriteriaValues.class
 com\nga\xtendhr\fastDoc\service\CompaniesServiceImp.class
-com\nga\xtendhr\config\AppConfig.class
 com\nga\xtendhr\fastDoc\model\TemplateFieldTag.class
 com\nga\xtendhr\fastDoc\model\Entities.class
 com\nga\xtendhr\fastDoc\service\GroupsSeveiceImp.class
@@ -20,7 +17,6 @@ com\nga\xtendhr\fastDoc\model\DocTemplates.class
 com\nga\xtendhr\fastDoc\service\DocTemplateDetailsService.class
 com\nga\xtendhr\fastDoc\model\MapTemplateFields.class
 com\nga\xtendhr\fastDoc\service\TemplateTestServiceImp.class
-com\nga\xtendhr\utility\GetDestinationClient.class
 com\nga\xtendhr\fastDoc\service\DocTemplatesService.class
 com\nga\xtendhr\fastDoc\service\CountryFastDocServiceImp.class
 com\nga\xtendhr\fastDoc\model\Fields.class
@@ -30,8 +26,6 @@ com\nga\xtendhr\fastDoc\service\CodelistTextService.class
 com\nga\xtendhr\fastDoc\model\CodelistText.class
 com\nga\xtendhr\fastDoc\service\OperatorsService.class
 com\nga\xtendhr\fastDoc\service\TemplateCriteriaGenerationService.class
-com\nga\xtendhr\connection\DestinationClient.class
-com\nga\xtendhr\controller\Initial_SF_PEX.class
 com\nga\xtendhr\fastDoc\model\SFDataMapping.class
 com\nga\xtendhr\fastDoc\service\FieldsServiceImp.class
 com\nga\xtendhr\fastDoc\service\CodelistService.class
@@ -42,9 +36,7 @@ com\nga\xtendhr\fastDoc\service\TemplateFastDocService.class
 com\nga\xtendhr\fastDoc\service\DocTemplateDetailsServiceImp.class
 com\nga\xtendhr\fastDoc\service\MapTemplateFieldsService.class
 com\nga\xtendhr\fastDoc\model\Codelist.class
-com\nga\xtendhr\controller\DBDataRetriveSample.class
 com\nga\xtendhr\workStoppage\controller\Manager.class
-com\nga\xtendhr\controller\DocGeneration.class
 com\nga\xtendhr\fastDoc\service\MapCountryCompanyGroupService.class
 com\nga\xtendhr\fastDoc\service\EntitiesService.class
 com\nga\xtendhr\fastDoc\connection\DestinationClient.class
@@ -68,7 +60,6 @@ com\nga\xtendhr\fastDoc\service\CountrySpecificFieldsService.class
 com\nga\xtendhr\fastDoc\service\ConfigurableTablesService.class
 com\nga\xtendhr\fastDoc\controller\Configurator.class
 com\nga\xtendhr\fastDoc\model\ConfigurableColumns.class
-com\nga\xtendhr\connection\BatchRequest.class
 com\nga\xtendhr\fastDoc\connection\BatchRequest.class
 com\nga\xtendhr\fastDoc\utility\CommonVariables.class
 com\nga\xtendhr\fastDoc\model\TemplateCriteriaGeneration.class
@@ -80,8 +71,6 @@ com\nga\xtendhr\fastDoc\service\MapCountryCompanyGroupServiceImp.class
 com\nga\xtendhr\fastDoc\service\MapRuleFieldsServiceImp.class
 com\nga\xtendhr\fastDoc\model\Templates.class
 com\nga\xtendhr\fastDoc\service\TemplateFieldTagService.class
-com\nga\xtendhr\controller\ApplicationTest.class
-com\nga\xtendhr\utility\CommonFunctions.class
 com\nga\xtendhr\workStoppage\controller\Employee$1.class
 com\nga\xtendhr\fastDoc\service\ConfigurableTablesServiceImp.class
 com\nga\xtendhr\fastDoc\model\Groups.class
