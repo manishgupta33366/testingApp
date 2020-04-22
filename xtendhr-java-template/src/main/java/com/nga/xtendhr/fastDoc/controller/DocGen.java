@@ -359,15 +359,16 @@ public class DocGen {
 			if (docTemplateDetailChek.size() > 0) {
 				docTemplateDetail = docTemplateDetailChek.get(0);
 				DocTemplates docTemplate = new DocTemplates();
-				docTemplate.setId(docTemplateDetail.getDocTemplateId());
+				String templateId = docTemplateDetail.getDocTemplateId();
+				docTemplate.setId(templateId);
 				docTemplate.setTemplate(encoded);
 				docTemplatesService.update(docTemplate);
 
 				docTemplateDetail = new DocTemplateDetails();
-				docTemplateDetail.setDocTemplateId(docTemplateDetail.getDocTemplateId());
+				docTemplateDetail.setDocTemplateId(templateId);
 				docTemplateDetail.setDescription(templateDescription);
 				docTemplateDetailsService.update(docTemplateDetail);
-				return ResponseEntity.ok().body("Template Updated successfully!!");
+				return ResponseEntity.ok().body("Success!!");
 			}
 
 			else {
@@ -381,7 +382,7 @@ public class DocGen {
 				docTemplateDetail.setName(templateName);
 				docTemplateDetail.setDescription(templateDescription);
 				docTemplateDetailsService.create(docTemplateDetail);
-				return ResponseEntity.ok().body(" Template Uploaded successfully!!");
+				return ResponseEntity.ok().body("Success!!");
 			}
 
 		} catch (Exception e) {

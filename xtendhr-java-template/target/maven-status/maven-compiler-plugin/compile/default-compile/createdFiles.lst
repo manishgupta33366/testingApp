@@ -6,6 +6,7 @@ com\nga\xtendhr\Application.class
 com\nga\xtendhr\fastDoc\model\Text.class
 com\nga\xtendhr\fastDoc\model\MapTemplateCriteriaValues.class
 com\nga\xtendhr\fastDoc\service\CompaniesServiceImp.class
+com\nga\xtendhr\config\AppConfig.class
 com\nga\xtendhr\fastDoc\model\TemplateFieldTag.class
 com\nga\xtendhr\fastDoc\model\Entities.class
 com\nga\xtendhr\fastDoc\service\GroupsSeveiceImp.class
