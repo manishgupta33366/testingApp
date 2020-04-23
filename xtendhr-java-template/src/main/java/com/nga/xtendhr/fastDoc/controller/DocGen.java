@@ -399,6 +399,42 @@ public class DocGen {
 		return doc;
 	}
 
+	@RequestMapping(value = "/editTemplate", method = RequestMethod.POST) // new/efficient code to upload template
+	public ResponseEntity<?> editTemplate(@RequestParam(name = "templateId") String templateId,
+			@RequestParam(name = "templateName") String templateName,
+			@RequestParam(name = "templateDescription") String templateDescription,
+			@RequestParam("file") MultipartFile multipartFile, HttpSession session) throws IOException {
+		try {
+
+			XWPFDocument document = new XWPFDocument(multipartFile.getInputStream());
+			startProcessingWordFile(document);
+
+			Random random = new Random(); // to generate a random fileName
+			int randomNumber = random.nextInt(987656554);
+			FileOutputStream fileOutputStream = new FileOutputStream("GeneratedDoc_" + randomNumber); // Temp location
+
+			document.write(fileOutputStream);// writing the updated Template to FileOutputStream // to save file
+			byte[] encoded = Files.readAllBytes(Paths.get("GeneratedDoc_" + randomNumber)); // reading the file
+																							// generated from
+																							// fileOutputStream
+			DocTemplateDetails docTemplateDetail;
+			DocTemplates docTemplate = new DocTemplates();
+			docTemplate.setId(templateId);
+			docTemplate.setTemplate(encoded);
+			docTemplatesService.update(docTemplate);
+
+			docTemplateDetail = new DocTemplateDetails();
+			docTemplateDetail.setDocTemplateId(templateId);
+			docTemplateDetail.setDescription(templateDescription);
+			docTemplateDetailsService.update(docTemplateDetail);
+			return ResponseEntity.ok().body("Success!!");
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			return new ResponseEntity<>("Error!", HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+
 	private void formatHeaderAndFooterTags(XWPFDocument doc) throws IOException, XmlException {
 		// To format Header and Footer Tags
 		XWPFHeaderFooterPolicy policy = new XWPFHeaderFooterPolicy(doc);
