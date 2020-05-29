@@ -188,6 +188,9 @@ public class DocGen {
 	@Autowired
 	DocTemplateDetailsService docTemplateDetailsService;
 
+	@Autowired
+	MapGroupTemplatesService mapGroupTemplatesService;
+
 	@PostMapping(value = "/downloadDocTemplate") // new/efficient code to download template
 	public void downloadDocTemplate(@RequestParam(name = "templateId") String templateId,
 			@RequestParam(name = "inPDF") Boolean inPDF, @RequestBody String requestData, HttpServletRequest request,
@@ -354,36 +357,35 @@ public class DocGen {
 																							// generated from
 																							// fileOutputStream
 
-			List<DocTemplateDetails> docTemplateDetailChek = docTemplateDetailsService.findByName(templateName);
+			// Uploading Template and its details
+
 			DocTemplateDetails docTemplateDetail;
-			if (docTemplateDetailChek.size() > 0) {
-				docTemplateDetail = docTemplateDetailChek.get(0);
-				DocTemplates docTemplate = new DocTemplates();
-				String templateId = docTemplateDetail.getDocTemplateId();
-				docTemplate.setId(templateId);
-				docTemplate.setTemplate(encoded);
-				docTemplatesService.update(docTemplate);
+			String templateId = String.valueOf(randomNumber);
+			DocTemplates docTemplate = new DocTemplates();
+			docTemplate.setId(templateId);
+			docTemplate.setTemplate(encoded);
+			docTemplatesService.create(docTemplate);
 
-				docTemplateDetail = new DocTemplateDetails();
-				docTemplateDetail.setDocTemplateId(templateId);
-				docTemplateDetail.setDescription(templateDescription);
-				docTemplateDetailsService.update(docTemplateDetail);
-				return ResponseEntity.ok().body("Success!!");
-			}
+			docTemplateDetail = new DocTemplateDetails();
+			docTemplateDetail.setDocTemplateId(templateId);
+			docTemplateDetail.setName(templateName);
+			docTemplateDetail.setDescription(templateDescription);
+			docTemplateDetailsService.create(docTemplateDetail);
 
-			else {
-				DocTemplates docTemplate = new DocTemplates();
-				docTemplate.setId(String.valueOf(randomNumber));
-				docTemplate.setTemplate(encoded);
-				docTemplatesService.create(docTemplate);
+			// Creating Template Entries in Configuration tables
+			Templates template = new Templates();
+			template.setId(templateId);
+			template.setDisplayName(templateName);
+			template.setName(templateName);
+			template.setDescription(templateDescription);
+			templateService.create(template);
 
-				docTemplateDetail = new DocTemplateDetails();
-				docTemplateDetail.setDocTemplateId(String.valueOf(randomNumber));
-				docTemplateDetail.setName(templateName);
-				docTemplateDetail.setDescription(templateDescription);
-				docTemplateDetailsService.create(docTemplateDetail);
-				return ResponseEntity.ok().body("Success!!");
-			}
+//			MapGroupTemplates mapGroupTemplates = new MapGroupTemplates();
+//			mapGroupTemplates.setGroupID(groupId);
+//			mapGroupTemplates.setTemplateID(templateId);
+//			mapGroupTemplatesService.create(mapGroupTemplates);
+
+			return ResponseEntity.ok().body("Success!!");
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -425,6 +427,7 @@ public class DocGen {
 
 			docTemplateDetail = new DocTemplateDetails();
 			docTemplateDetail.setDocTemplateId(templateId);
+			docTemplateDetail.setName(templateName);
 			docTemplateDetail.setDescription(templateDescription);
 			docTemplateDetailsService.update(docTemplateDetail);
 			return ResponseEntity.ok().body("Success!!");
@@ -529,7 +532,18 @@ public class DocGen {
 			newRunToBeUpdated = runToBeUpdated;
 			tagString = runToBeUpdated.getText(0);
 		}
-		while (true) { // Now concatenate till '}' is found
+		while (true) {
+			// Checking if we have reached at the end of the runs
+			if (runs.size() - 1 == runsOperatedTill) {
+				// if yes then process as follows
+				tempText = runs.get(runsOperatedTill).getText(0);
+				tagString = tagString + tempText;
+				setRunText(tagString, newRunToBeUpdated, runs.get(runsOperatedTill - 1)); // placing tagString at the
+																							// correct run and removing
+																							// text from the another run
+				return runsOperatedTill;
+			}
+			// Now concatenate till '}' is found
 			runsOperatedTill++;// move to next run
 			tempText = runs.get(runsOperatedTill).getText(0);
 			if (tempText.contains("}")) {
