@@ -28,7 +28,7 @@ public class DocTemplateDetails {
 	@Column(name = "\"DOC_TEMPLATE.ID\"", columnDefinition = "VARCHAR(32)")
 	private String docTemplateId;
 
-	@Column(name = "\"NAME\"", columnDefinition = "VARCHAR(32)")
+	@Column(name = "\"NAME\"", columnDefinition = "VARCHAR(64)")
 	private String name;
 
 	@Column(name = "\"DESCRIPTION\"", columnDefinition = "VARCHAR(64)")
