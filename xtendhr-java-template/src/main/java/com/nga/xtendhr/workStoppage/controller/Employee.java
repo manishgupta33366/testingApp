@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -35,6 +34,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
@@ -105,10 +105,12 @@ public class Employee {
 			// now converting encoded file back to bytes array
 			// stoppageDetails.setDocument(Base64.getDecoder().decode((String)
 			// session.getAttribute("file")));
-			stoppageDetails.setEmployeeId((String) session.getAttribute("userId"));
+			stoppageDetails.setEmployeeId(request.getUserPrincipal().getName());
 			stoppageDetails.setStartDate(new SimpleDateFormat("yyyy-MM-dd").parse(requestObj.getString("startDate")));
 			stoppageDetails.setEndDate(new SimpleDateFormat("yyyy-MM-dd").parse(requestObj.getString("endDate")));
-			stoppageDetails.setStoppageType((String) session.getAttribute("stoppageType"));
+			// Following line should be: stoppageDetails.setStoppageType((String)
+			// session.getAttribute("stoppageType"));
+			stoppageDetails.setStoppageType(requestObj.getString("stoppageType"));
 			// stoppageDetails.setDocumentType((String) session.getAttribute("fileName"));
 			stoppageDetails.setIsApproved(false);
 			stoppageDetails.setIsRejected(false);
@@ -145,6 +147,13 @@ public class Employee {
 		}
 	}
 
+	@RequestMapping(value = "/getUserId", method = { RequestMethod.GET, RequestMethod.POST })
+	public ResponseEntity<?> getUserId(HttpServletRequest request) {
+		JSONObject responseObj = new JSONObject();
+		responseObj.put("userId", request.getUserPrincipal().getName());
+		return ResponseEntity.ok().body(responseObj.toString());
+	}
+
 	@PostMapping(value = "/callAzureCognitiveApi")
 	public ResponseEntity<?> callAzureCognitiveApi(@RequestParam("file") MultipartFile multipartFile,
 			HttpServletRequest request) throws IOException {
@@ -166,16 +175,22 @@ public class Employee {
 		RestTemplate restTemplate = new RestTemplate();
 		logger.debug("File Name: " + multipartFile.getName());
 		logger.debug("File contentType: " + multipartFile.getContentType());
-		logger.debug("calling Azure service....");
-		ResponseEntity<String> response = restTemplate.exchange(
-				"https://southcentralus.api.cognitive.microsoft.com/customvision/v3.0/Prediction/f6830796-4ee9-4bd1-87fd-57df2afe01dc/classify/iterations/Iteration5/image",
-				HttpMethod.POST, requestEntity, String.class);
-		logger.debug("Azure service call completed....");
-		JSONObject responseObj = new JSONObject(response.getBody());
+		/*
+		 * logger.debug("calling Azure service...."); ResponseEntity<String> response =
+		 * restTemplate.exchange(
+		 * "https://southcentralus.api.cognitive.microsoft.com/customvision/v3.0/Prediction/f6830796-4ee9-4bd1-87fd-57df2afe01dc/classify/iterations/Iteration5/image",
+		 * HttpMethod.POST, requestEntity, String.class);
+		 * logger.debug("Azure service call completed...."); JSONObject responseObj =
+		 * new JSONObject(response.getBody()); responseObj.put("userId",
+		 * request.getUserPrincipal().getName()); session.setAttribute("userId",
+		 * request.getUserPrincipal().getName()); session.setAttribute("stoppageType",
+		 * responseObj.getJSONArray("predictions").getJSONObject(0).getString("tagName")
+		 * );
+		 */
+
+		JSONObject responseObj = new JSONObject();
 		responseObj.put("userId", request.getUserPrincipal().getName());
 		session.setAttribute("userId", request.getUserPrincipal().getName());
-		session.setAttribute("stoppageType",
-				responseObj.getJSONArray("predictions").getJSONObject(0).getString("tagName"));
 		return ResponseEntity.ok().body(responseObj.toString());
 	}
 
